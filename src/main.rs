@@ -1,6 +1,5 @@
-use std::fmt::{self, format};
-use std::fs::File;
-use std::io::{BufReader, Read};
+use std::fmt::{self};
+use std::fs::read_to_string;
 
 struct ATmemory {
     registers: [u8; 32], // 32 x 8 General Purpose Working Registers
@@ -9,6 +8,12 @@ struct ATmemory {
     sp: u8,              // Stack Pointer register
     flash: [u8; 16384],  // 16K Bytes of In-System Self-Programmable Flash
     sram: [u8; 1024],    // 1K Byte Internal SRAM
+}
+
+struct HexRecord {
+    address: u16,
+    data: Vec<u8>,
+    byte_count: u8,
 }
 
 #[derive(Debug)]
@@ -28,6 +33,66 @@ impl fmt::Display for Instruction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         fmt::Debug::fmt(self, f)
     }
+}
+
+fn parse_hex_line(line: &str) -> Result<Option<HexRecord>, String> {
+    let hex_string = line.trim_start_matches(':');
+
+    if hex_string.len() % 2 != 0 {
+        return Err(String::from("Cannot parse uneven hex lines."));
+    }
+
+    let bytes: Result<Vec<u8>, String> = (0..hex_string.len())
+        .step_by(2)
+        .map(|i| hex_byte(&hex_string[i..i + 2]))
+        .collect();
+
+    let bytes = bytes?;
+
+    if bytes.len() < 5 {
+        return Err(String::from("HEX line too short."));
+    }
+
+    let byte_count = bytes[0];
+    let address = ((bytes[1] as u16) << 8) | (bytes[2] as u16);
+    let record_type = bytes[3];
+
+    let expected_len = 5 + byte_count;
+    if bytes.len() != (expected_len as usize) {
+        return Err(format!(
+            "Length mismatch: expected {}, got {}",
+            expected_len,
+            bytes.len()
+        ));
+    }
+
+    let data = bytes[4..bytes.len() - 1].to_vec();
+    let checksum = bytes[bytes.len() - 1];
+
+    match record_type {
+        0x00 => {
+            // Data record
+            Ok(Some(HexRecord {
+                address,
+                data,
+                byte_count,
+            }))
+        }
+        0x01 => {
+            // End of file
+            Ok(None)
+        }
+        _ => Err(format!("Unsuported record type: {:02X}", record_type)),
+    }
+}
+
+fn hex_byte(s: &str) -> Result<u8, String> {
+    if s.len() > 2 {
+        return Err(String::from("Hex string is longer than expected."));
+    }
+
+    u8::from_str_radix(s, 16)
+        .map_err(|e| format!("Failed to convert hex {} to an integer: {}", s, e))
 }
 
 impl ATmemory {
@@ -56,7 +121,30 @@ impl ATmemory {
         Ok(())
     }
 
-    pub fn load_hex(&mut self, filename: &str) -> Result<(), String> {}
+    pub fn load_hex(&mut self, filename: &str) -> Result<(), String> {
+        for line in read_to_string(filename).unwrap().lines() {
+            match parse_hex_line(line) {
+                Ok(Some(record)) => {
+                    for (offset, &byte) in record.data.iter().enumerate() {
+                        let flash_addr = record.address as usize + offset;
+                        if flash_addr < self.flash.len() {
+                            self.flash[flash_addr] = byte;
+                        } else {
+                            return Err(format!(
+                                "Hex out of bounds: address {:#04X} (addressable to {:#04X})",
+                                flash_addr,
+                                self.flash.len() - 1
+                            ));
+                        }
+                    }
+                }
+                Ok(None) => break,
+                Err(_) => (),
+            }
+        }
+
+        Ok(())
+    }
 
     pub fn step(&mut self) -> Result<(), String> {
         let opcode = self.fetch();
@@ -140,14 +228,6 @@ impl ATmemory {
 fn main() {
     let mut cpu = ATmemory::init();
 }
-// ( x & 0xFE0F ) == 0x9403
-//    INC = 1001|010d|dddd|0011
-// 0xFE0F = 1111|1110|0000|1111 => mask
-// 0x9403 = 1001|0100|0000|0011 => mask result
-// 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// ( x & 0xFE0F ) == 0x9403
-//    DEC = 1001|010d|dddd|1010
-// 0xFE0F = 1111|1110|0000|1111 => mask
-// 0x9403 = 1001|0100|0000|1010 => mask result
-// 0x9453 = 1001|0100|0101|1010 => RESULT
+// 012345678
+// 123456789
