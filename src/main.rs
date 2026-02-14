@@ -1,9 +1,11 @@
 use std::fmt::{self};
 use std::fs::read_to_string;
 
+use iced::theme::Mode;
+use iced::widget::button::Catalog;
 use iced::widget::{button, column, container, row, rule, text};
 use iced::Length::Fill;
-use iced::{window, Element, Task, Theme};
+use iced::{system, window, Element, Task, Theme};
 
 // === ATmega16 part ===
 
@@ -237,36 +239,56 @@ fn main() -> iced::Result {
     iced::application(UInterface::new, UInterface::update, UInterface::view)
         .title("Breadboard")
         .theme(UInterface::theme)
+        .subscription(UInterface::subscription)
         .run()
 }
 
 // === User Inteface part ===
 #[derive(Debug)]
 struct UInterface {
+    theme_mode: Mode,
+    theme: Theme,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     Exit,
+    ThemeChanged(Mode),
 }
 
 impl UInterface {
     fn new() -> Self {
-        Self {
-        }
+        Self { theme_mode: Mode::Light, theme: Theme::Dark }
     }
 
     fn theme(&self) -> Theme {
-        match dark_light::detect() {
-            Ok(dark_light::Mode::Unspecified) | Err(_) => Theme::Ferra,
-            Ok(dark_light::Mode::Light) => Theme::GruvboxLight,
-            Ok(dark_light::Mode::Dark) => Theme::SolarizedDark,
+        match self.theme_mode {
+            Mode::None => Theme::Ferra,
+            Mode::Light => Theme::GruvboxLight,
+            Mode::Dark => Theme::SolarizedDark,
         }
+    }
+
+    fn mode_to_theme(mode: Mode) -> Theme {
+        match mode {
+            Mode::None => Theme::Ferra,
+            Mode::Light => Theme::GruvboxLight,
+            Mode::Dark => Theme::SolarizedDark,
+        }
+    }
+
+    fn subscription(&self) -> iced::Subscription<Message> {
+        system::theme_changes().map(Message::ThemeChanged)
     }
 
     fn update(state: &mut UInterface, message: Message) -> Task<Message> {
         match message {
             Message::Exit => window::latest().and_then(window::close),
+            Message::ThemeChanged(mode) => {
+                state.theme = UInterface::mode_to_theme(mode);
+                state.theme_mode = mode;
+                Task::none()
+            },
         }
     }
 
