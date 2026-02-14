@@ -1,10 +1,12 @@
 use std::fmt::{self};
 use std::fs::read_to_string;
+use std::path::PathBuf;
 
 use iced::theme::Mode;
 use iced::widget::{button, column, container, row, rule, text};
 use iced::Length::Fill;
 use iced::{system, window, Element, Task, Theme};
+use rfd::FileDialog;
 
 // === ATmega16 part ===
 
@@ -245,24 +247,40 @@ fn main() -> iced::Result {
 // === User Inteface part ===
 #[derive(Debug)]
 struct UInterface {
-    theme_mode: Mode,
-    theme: Theme,
     cpu: ATmemory,
+    flash_file: Option<PathBuf>,
+    theme: Theme,
+    theme_mode: Mode,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     Exit,
+    LoadBinToFlash,
+    LoadHexToFlash,
     ThemeChanged(Mode),
 }
 
 impl UInterface {
+    fn mode_to_theme(mode: Mode) -> Theme {
+        match mode {
+            Mode::None => Theme::Ferra,
+            Mode::Light => Theme::GruvboxLight,
+            Mode::Dark => Theme::SolarizedDark,
+        }
+    }
+
     fn new() -> Self {
         Self {
             theme_mode: Mode::Light,
             theme: Theme::Dark,
             cpu: ATmemory::init(),
+            flash_file: None,
         }
+    }
+
+    fn subscription(&self) -> iced::Subscription<Message> {
+        system::theme_changes().map(Message::ThemeChanged)
     }
 
     fn theme(&self) -> Theme {
@@ -273,24 +291,48 @@ impl UInterface {
         }
     }
 
-    fn mode_to_theme(mode: Mode) -> Theme {
-        match mode {
-            Mode::None => Theme::Ferra,
-            Mode::Light => Theme::GruvboxLight,
-            Mode::Dark => Theme::SolarizedDark,
-        }
-    }
-
-    fn subscription(&self) -> iced::Subscription<Message> {
-        system::theme_changes().map(Message::ThemeChanged)
-    }
-
     fn update(state: &mut UInterface, message: Message) -> Task<Message> {
         match message {
             Message::Exit => window::latest().and_then(window::close),
             Message::ThemeChanged(mode) => {
                 state.theme = UInterface::mode_to_theme(mode);
                 state.theme_mode = mode;
+                Task::none()
+            }
+            Message::LoadBinToFlash => {
+                let file = FileDialog::new()
+                    .add_filter("Binary file", &["bin"])
+                    .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
+                    .set_title("Open binary file")
+                    .pick_file();
+
+                if let Some(path) = file {
+                    if let Some(path_str) = path.to_str() {
+                        state.cpu.load_bin(path_str);
+                    } else {
+                        eprintln!("Error: Path is not valid UTF-8.");
+                    }
+                } else {
+                    eprintln!("Error: No file selected.");
+                }
+                Task::none()
+            }
+            Message::LoadHexToFlash => {
+                let file = FileDialog::new()
+                    .add_filter("Hex file", &["hex"])
+                    .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
+                    .set_title("Open hex file")
+                    .pick_file();
+
+                if let Some(path) = file {
+                    if let Some(path_str) = path.to_str() {
+                        state.cpu.load_hex(path_str);
+                    } else {
+                        eprintln!("Error: Path is not valid UTF-8.");
+                    }
+                } else {
+                    eprintln!("Error: No file selected.");
+                }
                 Task::none()
             }
         }
@@ -309,8 +351,8 @@ impl UInterface {
         content = content.push(rule::horizontal(2));
 
         let toolbar = row![
-            button(text("Load .bin")),
-            button(text("Load .hex")),
+            button(text("Load .bin")).on_press(Message::LoadBinToFlash),
+            button(text("Load .hex")).on_press(Message::LoadHexToFlash),
             button(text("Clean flash")),
             button(text("Step"))
         ]
@@ -326,7 +368,14 @@ impl UInterface {
         ]
         .padding(2);
 
-        let flash_view = text!("    ");
+        let flash_view = text(format!(
+            "{:#05X} {:#05X} {:#05X} {:#05X} {:#05X}",
+            self.cpu.flash[0],
+            self.cpu.flash[1],
+            self.cpu.flash[2],
+            self.cpu.flash[3],
+            self.cpu.flash[4]
+        ));
 
         let right_sidebar = column![
             text("PortA"),

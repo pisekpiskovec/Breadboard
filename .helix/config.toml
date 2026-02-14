@@ -1,3 +1,3 @@
 [keys.normal]
-"F5" = [":w", ":sh just run"]
-"F6" = [":w", ":sh just build"]
+"F5" = [":wa!", ":sh just run"]
+"F6" = [":wa!", ":sh just build"]
