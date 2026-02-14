@@ -305,6 +305,7 @@ impl UInterface {
                     .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
                     .set_title("Open binary file")
                     .pick_file();
+                state.flash_file = file.clone();
 
                 if let Some(path) = file {
                     if let Some(path_str) = path.to_str() {
@@ -323,6 +324,7 @@ impl UInterface {
                     .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
                     .set_title("Open hex file")
                     .pick_file();
+                state.flash_file = file.clone();
 
                 if let Some(path) = file {
                     if let Some(path_str) = path.to_str() {
@@ -369,7 +371,7 @@ impl UInterface {
         .padding(2);
 
         let flash_view = text(format!(
-            "{:#05X} {:#05X} {:#05X} {:#05X} {:#05X}",
+            "{:#02X} {:#02X} {:#02X} {:#02X} {:#02X}",
             self.cpu.flash[0],
             self.cpu.flash[1],
             self.cpu.flash[2],
@@ -397,6 +399,15 @@ impl UInterface {
         ];
 
         content = content.push(main_view);
+
+        let mut status_bar = row![];
+        if let Some(path) = self.flash_file.as_ref() && let Some(path_str) = path.to_str() {
+            status_bar = status_bar.push(text(path_str));
+        } else {
+            status_bar = status_bar.push(text(""));
+        }
+        content = content.push(status_bar);
+
         container(content).into()
     }
 }
