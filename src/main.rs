@@ -1,6 +1,13 @@
 use std::fmt::{self};
 use std::fs::read_to_string;
 
+use iced::widget::{button, column, container, row, rule, text};
+use iced::Length::Fill;
+use iced::{window, Element, Task, Theme};
+
+// === ATmega16 part ===
+
+#[derive(Debug)]
 struct ATmemory {
     registers: [u8; 32], // 32 x 8 General Purpose Working Registers
     sreg: u8,            // Status register
@@ -67,7 +74,7 @@ fn parse_hex_line(line: &str) -> Result<Option<HexRecord>, String> {
     }
 
     let data = bytes[4..bytes.len() - 1].to_vec();
-    let checksum = bytes[bytes.len() - 1];
+    let _checksum = bytes[bytes.len() - 1];
 
     match record_type {
         0x00 => {
@@ -225,9 +232,55 @@ impl ATmemory {
     }
 }
 
-fn main() {
+fn main() -> iced::Result {
     let mut cpu = ATmemory::init();
+    iced::application(UInterface::new, UInterface::update, UInterface::view)
+        .title("Breadboard")
+        .theme(UInterface::theme)
+        .run()
 }
 
-// 012345678
-// 123456789
+// === User Inteface part ===
+#[derive(Debug)]
+struct UInterface {
+}
+
+#[derive(Debug, Clone)]
+enum Message {
+    Exit,
+}
+
+impl UInterface {
+    fn new() -> Self {
+        Self {
+        }
+    }
+
+    fn theme(&self) -> Theme {
+        match dark_light::detect() {
+            Ok(dark_light::Mode::Unspecified) | Err(_) => Theme::Ferra,
+            Ok(dark_light::Mode::Light) => Theme::GruvboxLight,
+            Ok(dark_light::Mode::Dark) => Theme::SolarizedDark,
+        }
+    }
+
+    fn update(state: &mut UInterface, message: Message) -> Task<Message> {
+        match message {
+            Message::Exit => window::latest().and_then(window::close),
+        }
+    }
+
+    fn view(&self) -> Element<'_, Message> {
+        let mut content = column![row![
+            text("Breadboard").size(36).width(Fill),
+            button(text("Exit")).on_press(Message::Exit)
+        ]
+        .spacing(8)]
+        .spacing(2)
+        .padding(4);
+
+        content = content.push(rule::horizontal(2));
+
+        container(content).into()
+    }
+}
