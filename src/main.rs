@@ -2,7 +2,6 @@ use std::fmt::{self};
 use std::fs::read_to_string;
 
 use iced::theme::Mode;
-use iced::widget::button::Catalog;
 use iced::widget::{button, column, container, row, rule, text};
 use iced::Length::Fill;
 use iced::{system, window, Element, Task, Theme};
@@ -235,7 +234,7 @@ impl ATmemory {
 }
 
 fn main() -> iced::Result {
-    let mut cpu = ATmemory::init();
+    // let mut cpu = ATmemory::init();
     iced::application(UInterface::new, UInterface::update, UInterface::view)
         .title("Breadboard")
         .theme(UInterface::theme)
@@ -248,6 +247,7 @@ fn main() -> iced::Result {
 struct UInterface {
     theme_mode: Mode,
     theme: Theme,
+    cpu: ATmemory,
 }
 
 #[derive(Debug, Clone)]
@@ -258,7 +258,11 @@ enum Message {
 
 impl UInterface {
     fn new() -> Self {
-        Self { theme_mode: Mode::Light, theme: Theme::Dark }
+        Self {
+            theme_mode: Mode::Light,
+            theme: Theme::Dark,
+            cpu: ATmemory::init(),
+        }
     }
 
     fn theme(&self) -> Theme {
@@ -288,21 +292,62 @@ impl UInterface {
                 state.theme = UInterface::mode_to_theme(mode);
                 state.theme_mode = mode;
                 Task::none()
-            },
+            }
         }
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let mut content = column![row![
+        let mut content = column![].spacing(2).padding(4);
+
+        let header = row![
             text("Breadboard").size(36).width(Fill),
             button(text("Exit")).on_press(Message::Exit)
         ]
-        .spacing(8)]
-        .spacing(2)
-        .padding(4);
+        .spacing(8);
+        content = content.push(header);
 
         content = content.push(rule::horizontal(2));
 
+        let toolbar = row![
+            button(text("Load .bin")),
+            button(text("Load .hex")),
+            button(text("Clean flash")),
+            button(text("Step"))
+        ]
+        .spacing(8)
+        .padding(4);
+        content = content.push(toolbar);
+        content = content.push(rule::horizontal(2));
+
+        let left_sidebar = column![
+            text(format!("Program Counter | {:#06X}", self.cpu.pc)),
+            text(format!("Stack Pointer | {:#04X}", self.cpu.sp)),
+            text(format!("Status Register | {:#04X}", self.cpu.sreg)),
+        ]
+        .padding(2);
+
+        let flash_view = text!("    ");
+
+        let right_sidebar = column![
+            text("PortA"),
+            text("PortB"),
+            text("PortC"),
+            text("PortD"),
+            text("Timer0"),
+            text("Timer1"),
+            text("Timer2"),
+        ]
+        .padding(2);
+
+        let main_view = row![
+            left_sidebar,
+            rule::vertical(2),
+            flash_view,
+            rule::vertical(2),
+            right_sidebar,
+        ];
+
+        content = content.push(main_view);
         container(content).into()
     }
 }
