@@ -1,0 +1,3 @@
+[keys.normal]
+"F5" = ":sh just run"
+"F6" = ":sh just build"
