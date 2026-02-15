@@ -441,4 +441,17 @@ impl UInterface {
 
         container(content).into()
     }
+
+    fn get_memory_window_boundary(&self) -> (usize, usize) {
+        let pc = self.cpu.pc as i32;
+        let half_window = 128;
+
+        let start = pc - half_window;
+        let end = pc + half_window;
+
+        let start = start.max(0) as usize;
+        let end = end.min(self.cpu.flash.len() as i32) as usize;
+
+        (start, end)
+    }
 }
