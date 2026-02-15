@@ -352,6 +352,15 @@ impl UInterface {
         scrollable(rows).into()
     }
 
+    fn render_registers(&self) -> Element<'_, Message> {
+        let mut rows = column![].spacing(2);
+        for reg in (0..self.cpu.registers.len()) {
+            rows = rows.push(text!("R{:02}={:03}", reg, self.cpu.registers[reg]).width(Fill));
+        }
+
+        scrollable(rows).into()
+    }
+
     fn subscription(&self) -> iced::Subscription<Message> {
         system::theme_changes().map(Message::ThemeChanged)
     }
@@ -467,6 +476,8 @@ impl UInterface {
             text(format!("Program Counter | {:#06X}", self.cpu.pc)),
             text(format!("Stack Pointer | {:#04X}", self.cpu.sp)),
             text(format!("Status Register | {:#04X}", self.cpu.sreg)),
+            rule::horizontal(2),
+            Self::render_registers(self)
         ]
         .padding(2);
 
