@@ -269,7 +269,8 @@ enum Message {
     Exit,
     LoadBinToFlash,
     LoadHexToFlash,
-    ThemeChanged(Mode)
+    Restart,
+    ThemeChanged(Mode),
 }
 
 impl UInterface {
@@ -434,6 +435,11 @@ impl UInterface {
                 state.flash_file = None;
                 Task::none()
             }
+            Message::Restart => {
+                state.cpu = ATmemory::init();
+                state.flash_file = None;
+                Task::none()
+            }
             Message::CPUstep => {
                 let _ = state.cpu.step();
                 Task::none()
@@ -457,11 +463,11 @@ impl UInterface {
             button(text("Load .bin")).on_press(Message::LoadBinToFlash),
             button(text("Load .hex")).on_press(Message::LoadHexToFlash),
             if self.flash_file.is_some() {
-                button(text("Erase flash"))
+                button(text("Restart"))
                     .style(button::danger)
-                    .on_press(Message::EraseFlash)
+                    .on_press(Message::Restart)
             } else {
-                button(text("Erase flash")).style(button::danger)
+                button(text("Restart")).style(button::danger)
             },
             if self.flash_file.is_some() {
                 button(text("Step")).on_press(Message::CPUstep)
