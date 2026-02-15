@@ -317,7 +317,7 @@ impl UInterface {
 
                 if let Some(path) = file {
                     if let Some(path_str) = path.to_str() {
-                        state.cpu.load_bin(path_str);
+                        let _ = state.cpu.load_bin(path_str);
                     } else {
                         state.cpu.erase_flash();
                         state.flash_file = None;
@@ -340,7 +340,7 @@ impl UInterface {
 
                 if let Some(path) = file {
                     if let Some(path_str) = path.to_str() {
-                        state.cpu.load_hex(path_str);
+                        let _ = state.cpu.load_hex(path_str);
                     } else {
                         state.cpu.erase_flash();
                         state.flash_file = None;
@@ -426,6 +426,7 @@ impl UInterface {
         ];
 
         content = content.push(main_view);
+        content = content.push(rule::horizontal(2));
 
         let mut status_bar = row![];
         if let Some(path) = self.flash_file.as_ref() {
