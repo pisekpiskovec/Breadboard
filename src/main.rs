@@ -3,7 +3,7 @@ use std::fs::read_to_string;
 use std::path::PathBuf;
 
 use iced::theme::Mode;
-use iced::widget::{button, column, container, row, rule, text};
+use iced::widget::{button, column, container, row, rule, scrollable, text};
 use iced::Length::Fill;
 use iced::{system, window, Element, Task, Theme};
 use rfd::FileDialog;
@@ -397,15 +397,6 @@ impl UInterface {
         ]
         .padding(2);
 
-        let flash_view = text(format!(
-            "{:#02X} {:#02X} {:#02X} {:#02X} {:#02X}",
-            self.cpu.flash[0],
-            self.cpu.flash[1],
-            self.cpu.flash[2],
-            self.cpu.flash[3],
-            self.cpu.flash[4]
-        ));
-
         let right_sidebar = column![
             text("PortA"),
             text("PortB"),
@@ -420,7 +411,7 @@ impl UInterface {
         let main_view = row![
             left_sidebar,
             rule::vertical(2),
-            flash_view,
+            Self::render_flash_memory(self),
             rule::vertical(2),
             right_sidebar,
         ];
@@ -440,6 +431,35 @@ impl UInterface {
         content = content.push(status_bar);
 
         container(content).into()
+    }
+
+    fn render_flash_memory(&self) -> Element<'_, Message> {
+        let (start, end) = Self::get_memory_window_boundary(self);
+        let mut rows = column![].spacing(2);
+
+        for addr in (start..end).step_by(8) {
+            let row = self.format_memory_row(addr);
+            rows = rows.push(row);
+        }
+
+        scrollable(rows).into()
+    }
+
+    fn format_memory_row(&self, addr: usize) -> Element<'_, Message> {
+        let mut row = row![];
+
+        row = row.push(text!("{:04X}:", addr));
+
+        for seg in addr..addr + 8  {
+            let seg_text = if (self.cpu.pc as usize) == seg {
+                text!(" {:02X}", self.cpu.flash[seg]).style(text::primary)
+            } else {
+                text!(" {:02X}", self.cpu.flash[seg])
+            };
+            row = row.push(seg_text);
+        }
+
+        row.spacing(2).into()
     }
 
     fn get_memory_window_boundary(&self) -> (usize, usize) {
