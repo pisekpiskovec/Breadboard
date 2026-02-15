@@ -453,18 +453,18 @@ impl UInterface {
         row = row.push(text!("{:04X}:", addr).font(Font::MONOSPACE));
 
         for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_text = if (self.cpu.pc as usize) == seg {
+            let seg_byte = if usize::from(self.cpu.pc) == seg || usize::from(self.cpu.pc + 1) == seg {
                 text!(" {:02X}", self.cpu.flash[seg]).style(text::primary)
             } else {
                 text!(" {:02X}", self.cpu.flash[seg])
             };
-            row = row.push(seg_text.font(Font::MONOSPACE));
+            row = row.push(seg_byte.font(Font::MONOSPACE));
         }
 
         row = row.push(text("        ").font(Font::MONOSPACE));
 
         for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_char = if (self.cpu.pc as usize) == seg {
+            let seg_char = if usize::from(self.cpu.pc) == seg || usize::from(self.cpu.pc + 1) == seg {
                 text!("{}", Self::byte_to_ascii(self.cpu.flash[seg])).style(text::primary)
             } else {
                 text!("{}", Self::byte_to_ascii(self.cpu.flash[seg]))
