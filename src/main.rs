@@ -156,6 +156,11 @@ impl ATmemory {
         Ok(())
     }
 
+    pub fn erase_flash(&mut self) {
+        self.flash = [0; 16384];
+        self.pc = 0;
+    }
+
     pub fn step(&mut self) -> Result<(), String> {
         let opcode = self.fetch();
         println!("fetched {:#04x}", opcode);
@@ -236,7 +241,6 @@ impl ATmemory {
 }
 
 fn main() -> iced::Result {
-    // let mut cpu = ATmemory::init();
     iced::application(UInterface::new, UInterface::update, UInterface::view)
         .title("Breadboard")
         .theme(UInterface::theme)
@@ -255,6 +259,7 @@ struct UInterface {
 
 #[derive(Debug, Clone)]
 enum Message {
+    EraseFlash,
     Exit,
     LoadBinToFlash,
     LoadHexToFlash,
@@ -337,6 +342,11 @@ impl UInterface {
                 }
                 Task::none()
             }
+            Message::EraseFlash => {
+                state.cpu.erase_flash();
+                state.flash_file = None;
+                Task::none()
+            }
         }
     }
 
@@ -355,7 +365,13 @@ impl UInterface {
         let toolbar = row![
             button(text("Load .bin")).on_press(Message::LoadBinToFlash),
             button(text("Load .hex")).on_press(Message::LoadHexToFlash),
-            button(text("Clean flash")),
+            if self.flash_file.is_some() {
+                button(text("Erase flash"))
+                    .style(button::danger)
+                    .on_press(Message::EraseFlash)
+            } else {
+                button(text("Erase flash")).style(button::danger)
+            },
             button(text("Step"))
         ]
         .spacing(8)
@@ -401,8 +417,10 @@ impl UInterface {
         content = content.push(main_view);
 
         let mut status_bar = row![];
-        if let Some(path) = self.flash_file.as_ref() && let Some(path_str) = path.to_str() {
-            status_bar = status_bar.push(text(path_str));
+        if let Some(path) = self.flash_file.as_ref() {
+            if let Some(path_str) = path.to_str() {
+                status_bar = status_bar.push(text(path_str));
+            }
         } else {
             status_bar = status_bar.push(text(""));
         }
