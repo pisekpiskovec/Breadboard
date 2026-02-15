@@ -257,6 +257,7 @@ struct UInterface {
     cpu: ATmemory,
     flash_file: Option<PathBuf>,
     memory_bytes_per_row: usize,
+    memory_bytes_per_column: usize,
     theme: Theme,
     theme_mode: Mode,
 }
@@ -311,7 +312,7 @@ impl UInterface {
 
     fn get_memory_window_boundary(&self) -> (usize, usize) {
         let pc = self.cpu.pc as i32;
-        let half_window = 128;
+        let half_window = self.memory_bytes_per_column as i32;
 
         let start = pc - half_window;
         let end = pc + half_window;
@@ -337,6 +338,7 @@ impl UInterface {
             cpu: ATmemory::init(),
             flash_file: None,
             memory_bytes_per_row: 8,
+            memory_bytes_per_column: 128,
         }
     }
 
