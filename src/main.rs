@@ -256,21 +256,72 @@ fn main() -> iced::Result {
 struct UInterface {
     cpu: ATmemory,
     flash_file: Option<PathBuf>,
+    memory_bytes_per_row: usize,
     theme: Theme,
     theme_mode: Mode,
-    memory_bytes_per_row: usize,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
+    CPUstep,
     EraseFlash,
     Exit,
     LoadBinToFlash,
     LoadHexToFlash,
-    ThemeChanged(Mode),
+    ThemeChanged(Mode)
 }
 
 impl UInterface {
+    fn byte_to_ascii(byte: u8) -> char {
+        let range = 32..126;
+        if range.contains(&byte) {
+            char::from(byte)
+        } else {
+            '.'
+        }
+    }
+
+    fn format_memory_row(&self, addr: usize) -> Element<'_, Message> {
+        let mut row = row![];
+
+        row = row.push(text!("{:04X}:", addr).font(Font::MONOSPACE));
+
+        for seg in addr..addr + self.memory_bytes_per_row {
+            let seg_byte = if usize::from(self.cpu.pc) == seg || usize::from(self.cpu.pc + 1) == seg {
+                text!(" {:02X}", self.cpu.flash[seg]).style(text::primary)
+            } else {
+                text!(" {:02X}", self.cpu.flash[seg])
+            };
+            row = row.push(seg_byte.font(Font::MONOSPACE));
+        }
+
+        row = row.push(text("        ").font(Font::MONOSPACE));
+
+        for seg in addr..addr + self.memory_bytes_per_row {
+            let seg_char = if usize::from(self.cpu.pc) == seg || usize::from(self.cpu.pc + 1) == seg {
+                text!("{}", Self::byte_to_ascii(self.cpu.flash[seg])).style(text::primary)
+            } else {
+                text!("{}", Self::byte_to_ascii(self.cpu.flash[seg]))
+            };
+            row = row.push(seg_char.font(Font::MONOSPACE));
+        }
+
+        row.spacing(2).into()
+    }
+
+    fn get_memory_window_boundary(&self) -> (usize, usize) {
+        let pc = self.cpu.pc as i32;
+        let half_window = 128;
+
+        let start = pc - half_window;
+        let end = pc + half_window;
+
+        let start = start.max(0) as usize;
+        let end = end.min(self.cpu.flash.len() as i32) as usize;
+
+        (start, end)
+    }
+
     fn mode_to_theme(mode: Mode) -> Theme {
         match mode {
             Mode::None => Theme::Ferra,
@@ -287,6 +338,18 @@ impl UInterface {
             flash_file: None,
             memory_bytes_per_row: 8,
         }
+    }
+
+    fn render_flash_memory(&self) -> Element<'_, Message> {
+        let (start, end) = Self::get_memory_window_boundary(self);
+        let mut rows = column![].spacing(2);
+
+        for addr in (start..end).step_by(self.memory_bytes_per_row) {
+            let row = self.format_memory_row(addr);
+            rows = rows.push(row);
+        }
+
+        scrollable(rows).into()
     }
 
     fn subscription(&self) -> iced::Subscription<Message> {
@@ -360,6 +423,10 @@ impl UInterface {
                 state.flash_file = None;
                 Task::none()
             }
+            Message::CPUstep => {
+                let _ = state.cpu.step();
+                Task::none()
+            },
         }
     }
 
@@ -385,7 +452,11 @@ impl UInterface {
             } else {
                 button(text("Erase flash")).style(button::danger)
             },
-            button(text("Step"))
+            if self.flash_file.is_some() {
+                button(text("Step")).on_press(Message::CPUstep)
+            } else {
+                button(text("Step"))
+            }
         ]
         .spacing(8)
         .padding(4);
@@ -433,67 +504,5 @@ impl UInterface {
         content = content.push(status_bar);
 
         container(content).into()
-    }
-
-    fn render_flash_memory(&self) -> Element<'_, Message> {
-        let (start, end) = Self::get_memory_window_boundary(self);
-        let mut rows = column![].spacing(2);
-
-        for addr in (start..end).step_by(self.memory_bytes_per_row) {
-            let row = self.format_memory_row(addr);
-            rows = rows.push(row);
-        }
-
-        scrollable(rows).into()
-    }
-
-    fn format_memory_row(&self, addr: usize) -> Element<'_, Message> {
-        let mut row = row![];
-
-        row = row.push(text!("{:04X}:", addr).font(Font::MONOSPACE));
-
-        for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_byte = if usize::from(self.cpu.pc) == seg || usize::from(self.cpu.pc + 1) == seg {
-                text!(" {:02X}", self.cpu.flash[seg]).style(text::primary)
-            } else {
-                text!(" {:02X}", self.cpu.flash[seg])
-            };
-            row = row.push(seg_byte.font(Font::MONOSPACE));
-        }
-
-        row = row.push(text("        ").font(Font::MONOSPACE));
-
-        for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_char = if usize::from(self.cpu.pc) == seg || usize::from(self.cpu.pc + 1) == seg {
-                text!("{}", Self::byte_to_ascii(self.cpu.flash[seg])).style(text::primary)
-            } else {
-                text!("{}", Self::byte_to_ascii(self.cpu.flash[seg]))
-            };
-            row = row.push(seg_char.font(Font::MONOSPACE));
-        }
-
-        row.spacing(2).into()
-    }
-
-    fn byte_to_ascii(byte: u8) -> char {
-        let range = 32..126;
-        if range.contains(&byte) {
-            char::from(byte)
-        } else {
-            '.'
-        }
-    }
-
-    fn get_memory_window_boundary(&self) -> (usize, usize) {
-        let pc = self.cpu.pc as i32;
-        let half_window = 128;
-
-        let start = pc - half_window;
-        let end = pc + half_window;
-
-        let start = start.max(0) as usize;
-        let end = end.min(self.cpu.flash.len() as i32) as usize;
-
-        (start, end)
     }
 }
