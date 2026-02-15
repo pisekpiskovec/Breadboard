@@ -319,9 +319,13 @@ impl UInterface {
                     if let Some(path_str) = path.to_str() {
                         state.cpu.load_bin(path_str);
                     } else {
+                        state.cpu.erase_flash();
+                        state.flash_file = None;
                         eprintln!("Error: Path is not valid UTF-8.");
                     }
                 } else {
+                    state.cpu.erase_flash();
+                    state.flash_file = None;
                     eprintln!("Error: No file selected.");
                 }
                 Task::none()
@@ -338,9 +342,13 @@ impl UInterface {
                     if let Some(path_str) = path.to_str() {
                         state.cpu.load_hex(path_str);
                     } else {
+                        state.cpu.erase_flash();
+                        state.flash_file = None;
                         eprintln!("Error: Path is not valid UTF-8.");
                     }
                 } else {
+                    state.cpu.erase_flash();
+                    state.flash_file = None;
                     eprintln!("Error: No file selected.");
                 }
                 Task::none()
