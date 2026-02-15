@@ -481,23 +481,23 @@ impl UInterface {
         ]
         .padding(2);
 
-        let right_sidebar = column![
-            text("PortA"),
-            text("PortB"),
-            text("PortC"),
-            text("PortD"),
-            text("Timer0"),
-            text("Timer1"),
-            text("Timer2"),
-        ]
-        .padding(2);
+        // let right_sidebar = column![
+        //     text("PortA"),
+        //     text("PortB"),
+        //     text("PortC"),
+        //     text("PortD"),
+        //     text("Timer0"),
+        //     text("Timer1"),
+        //     text("Timer2"),
+        // ]
+        // .padding(2);
 
         let main_view = row![
             left_sidebar,
             rule::vertical(2),
             Self::render_flash_memory(self),
-            rule::vertical(2),
-            right_sidebar,
+            // rule::vertical(2),
+            // right_sidebar,
         ];
 
         content = content.push(main_view);
