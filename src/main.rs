@@ -163,12 +163,15 @@ impl ATmemory {
 
     pub fn step(&mut self) -> Result<(), String> {
         let opcode = self.fetch();
-        println!("fetched {:#04x}", opcode);
         let instruction = self.decode(opcode)?;
-        println!("executing {}", instruction);
-        println!("serg {}", self.sreg);
         self.execute(instruction)?;
         Ok(())
+    }
+
+    pub fn get_instruction(&self) -> String {
+        let opcode = self.fetch();
+        let instruction = self.decode(opcode).unwrap_or(Instruction::NOP);
+        format!("{}", instruction)
     }
 
     fn fetch(&self) -> u16 {
@@ -419,11 +422,12 @@ impl UInterface {
         let mut status_bar = row![];
         if let Some(path) = self.flash_file.as_ref() {
             if let Some(path_str) = path.to_str() {
-                status_bar = status_bar.push(text(path_str));
+                status_bar = status_bar.push(text(path_str).width(Fill));
             }
         } else {
-            status_bar = status_bar.push(text(""));
+            status_bar = status_bar.push(text("").width(Fill));
         }
+        status_bar = status_bar.push(text!("Current instruction: {}", self.cpu.get_instruction()));
         content = content.push(status_bar);
 
         container(content).into()
