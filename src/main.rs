@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use iced::theme::Mode;
 use iced::widget::{button, column, container, row, rule, scrollable, text};
 use iced::Length::Fill;
-use iced::{system, window, Element, Task, Theme};
+use iced::{Element, Font, Task, Theme, system, window};
 use rfd::FileDialog;
 
 // === ATmega16 part ===
@@ -258,6 +258,7 @@ struct UInterface {
     flash_file: Option<PathBuf>,
     theme: Theme,
     theme_mode: Mode,
+    memory_bytes_per_row: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -284,6 +285,7 @@ impl UInterface {
             theme: Theme::Dark,
             cpu: ATmemory::init(),
             flash_file: None,
+            memory_bytes_per_row: 8,
         }
     }
 
@@ -437,7 +439,7 @@ impl UInterface {
         let (start, end) = Self::get_memory_window_boundary(self);
         let mut rows = column![].spacing(2);
 
-        for addr in (start..end).step_by(8) {
+        for addr in (start..end).step_by(self.memory_bytes_per_row) {
             let row = self.format_memory_row(addr);
             rows = rows.push(row);
         }
@@ -448,18 +450,38 @@ impl UInterface {
     fn format_memory_row(&self, addr: usize) -> Element<'_, Message> {
         let mut row = row![];
 
-        row = row.push(text!("{:04X}:", addr));
+        row = row.push(text!("{:04X}:", addr).font(Font::MONOSPACE));
 
-        for seg in addr..addr + 8  {
+        for seg in addr..addr + self.memory_bytes_per_row {
             let seg_text = if (self.cpu.pc as usize) == seg {
                 text!(" {:02X}", self.cpu.flash[seg]).style(text::primary)
             } else {
                 text!(" {:02X}", self.cpu.flash[seg])
             };
-            row = row.push(seg_text);
+            row = row.push(seg_text.font(Font::MONOSPACE));
+        }
+
+        row = row.push(text("        ").font(Font::MONOSPACE));
+
+        for seg in addr..addr + self.memory_bytes_per_row {
+            let seg_char = if (self.cpu.pc as usize) == seg {
+                text!("{}", Self::byte_to_ascii(self.cpu.flash[seg])).style(text::primary)
+            } else {
+                text!("{}", Self::byte_to_ascii(self.cpu.flash[seg]))
+            };
+            row = row.push(seg_char.font(Font::MONOSPACE));
         }
 
         row.spacing(2).into()
+    }
+
+    fn byte_to_ascii(byte: u8) -> char {
+        let range = 32..126;
+        if range.contains(&byte) {
+            char::from(byte)
+        } else {
+            '.'
+        }
     }
 
     fn get_memory_window_boundary(&self) -> (usize, usize) {
