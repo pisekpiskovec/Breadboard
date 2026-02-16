@@ -199,6 +199,10 @@ impl ATmemory {
     fn decode(&self, opcode: u16) -> Result<Instruction, String> {
         match opcode {
             0x0000 => Ok(Instruction::NOP),
+            x if (x & 0xF000) == 0xE000 => Ok(Instruction::LDI {
+                dest: ( 0x10 | ((x >> 4) & 0x0F)) as u8,
+                value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
+            }),
             0x4A08 => Ok(Instruction::SEC),
             x if (x & 0xFE0F) == 0x9403 => Ok(Instruction::INC {
                 reg: ((x >> 4) & 0x1F) as u8,
@@ -228,6 +232,11 @@ impl ATmemory {
                 self.pc += 2;
                 Ok(())
             }
+            Instruction::LDI { dest, value } => {
+                self.registers[dest as usize] = value;
+                self.pc += 2;
+                Ok(())
+            }
             Instruction::INC { reg } => {
                 // TODO: Implement Negative and oVerflow flags
                 self.registers[reg as usize] = self.registers[reg as usize].wrapping_add(1);
@@ -252,3 +261,23 @@ impl ATmemory {
         }
     }
 }
+
+// 16(10) = 1|0000(2)
+// 31(10) = 1|1111(2)
+
+// ( x & 0xFE0F ) == 0x9403
+//    INC = 1001|010d|dddd|0011
+// 0xFE0F = 1111|1110|0000|1111 => mask
+// 0x9403 = 1001|0100|0000|0011 => mask result
+// 0x9453 = 1001|0100|0101|0011 => RESULT
+
+// ( x & 0xF000 ) == 0xE000
+//    DEC = 1110|KKKK|dddd|KKKK
+// 0xF000 = 1111|0000|0000|0000 => mask
+// 0xE000 = 1110|0000|0000|0000 => mask result
+// 0x9453 = 1001|0100|0101|1010 => RESULT
+//
+// 1110 KKKK dddd KKKK
+// 0000 1110 KKKK dddd => >>4
+// 0000 0000 1111 0000 => maskH (F0)
+// 0000 0000 0000 1111 => maskL (0F)
