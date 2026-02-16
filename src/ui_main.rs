@@ -146,7 +146,7 @@ impl UInterface {
             rows = rows.push(row);
         }
 
-        scrollable(rows.padding(4)).into()
+        scrollable(rows.padding(4)).width(Fill).into()
     }
 
     fn render_registers(&self) -> Element<'_, Message> {
@@ -155,7 +155,7 @@ impl UInterface {
             rows = rows.push(text!("R{:02}={:03}", reg, self.cpu.registers()[reg]));
         }
 
-        scrollable(rows.padding(4)).into()
+        scrollable(rows.padding(4)).width(Fill).into()
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
@@ -305,13 +305,18 @@ impl UInterface {
         content = content.push(rule::horizontal(2));
 
         let left_sidebar = column![
-            text(format!("Program Counter | {:#06X}", self.cpu.pc())),
-            text(format!("Stack Pointer | {:#04X}", self.cpu.sp())),
-            text(format!("Status Register | {:#04X}", self.cpu.sreg())),
+            scrollable(
+                column![
+                    text(format!("Program Counter | {:#06X}", self.cpu.pc())),
+                    text(format!("Stack Pointer | {:#04X}", self.cpu.sp())),
+                    text(format!("Status Register | {:#04X}", self.cpu.sreg())),
+                ]
+                .padding(4)
+            )
+            .width(Fill),
             rule::horizontal(2),
             Self::render_registers(self)
-        ]
-        .padding(2);
+        ];
 
         // let right_sidebar = column![
         //     text("PortA"),
@@ -377,9 +382,11 @@ impl UInterface {
         content = content.push(
             row![
                 text("Bytes of memory per column:"),
-                slider(8.0..=256.0, self.temp_memory_bytes_per_column as f64, |val| {
-                    Message::SettingsColumnChanged(val as usize)
-                }),
+                slider(
+                    8.0..=256.0,
+                    self.temp_memory_bytes_per_column as f64,
+                    |val| { Message::SettingsColumnChanged(val as usize) }
+                ),
                 text!("{}", self.temp_memory_bytes_per_column)
             ]
             .spacing(4)
