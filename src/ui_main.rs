@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use iced::theme::Mode;
-use iced::widget::{button, column, container, row, rule, scrollable, text};
+use iced::widget::{button, column, container, row, rule, scrollable, slider, text};
 use iced::Length::Fill;
 use iced::{system, window, Element, Font, Task, Theme};
 use rfd::FileDialog;
@@ -10,23 +10,33 @@ use crate::config::Config;
 use crate::memory::ATmemory;
 
 #[derive(Debug)]
-pub(crate) struct UInterface {
+pub struct UInterface {
     cpu: ATmemory,
     flash_file: Option<PathBuf>,
     memory_bytes_per_row: usize,
     memory_bytes_per_column: usize,
     theme: Theme,
     theme_mode: Mode,
+    show_settings: bool,
+
+    // Temp settings value
+    temp_memory_bytes_per_row: usize,
+    temp_memory_bytes_per_column: usize,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum Message {
+pub enum Message {
     CPUstep,
     Exit,
     LoadBinToFlash,
     LoadHexToFlash,
     Restart,
     ThemeChanged(Mode),
+    OpenSettings,
+    CloseSettings,
+    SettingsRowChanged(usize),
+    SettingsColumnChanged(usize),
+    SaveSettings,
 }
 
 impl UInterface {
@@ -74,7 +84,7 @@ impl UInterface {
         let half_window = self.memory_bytes_per_column as i32;
 
         let start = pc - half_window;
-        let end = pc + half_window;
+        let end = pc + half_window + 1;
 
         let start = start.max(0) as usize;
         let end = end.min(self.cpu.flash().len() as i32) as usize;
@@ -104,6 +114,9 @@ impl UInterface {
             flash_file: None,
             memory_bytes_per_row: config.display.memory_bytes_per_row,
             memory_bytes_per_column: config.display.memory_bytes_per_column,
+            show_settings: false,
+            temp_memory_bytes_per_row: config.display.memory_bytes_per_row,
+            temp_memory_bytes_per_column: config.display.memory_bytes_per_column,
         }
     }
 
@@ -133,16 +146,16 @@ impl UInterface {
             rows = rows.push(row);
         }
 
-        scrollable(rows).into()
+        scrollable(rows.padding(4)).into()
     }
 
     fn render_registers(&self) -> Element<'_, Message> {
         let mut rows = column![].spacing(2);
         for reg in 0..self.cpu.registers().len() {
-            rows = rows.push(text!("R{:02}={:03}", reg, self.cpu.registers()[reg]).width(Fill));
+            rows = rows.push(text!("R{:02}={:03}", reg, self.cpu.registers()[reg]));
         }
 
-        scrollable(rows).into()
+        scrollable(rows.padding(4)).into()
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
@@ -219,16 +232,51 @@ impl UInterface {
             Message::CPUstep => {
                 let _ = state.cpu.step();
                 Task::none()
-            },
+            }
+            Message::OpenSettings => {
+                state.temp_memory_bytes_per_column = state.memory_bytes_per_column;
+                state.temp_memory_bytes_per_row = state.memory_bytes_per_row;
+                state.show_settings = true;
+                Task::none()
+            }
+            Message::CloseSettings => {
+                state.temp_memory_bytes_per_column = state.memory_bytes_per_column;
+                state.temp_memory_bytes_per_row = state.memory_bytes_per_row;
+                state.show_settings = false;
+                Task::none()
+            }
+            Message::SettingsRowChanged(val) => {
+                state.temp_memory_bytes_per_row = val;
+                Task::none()
+            }
+            Message::SettingsColumnChanged(val) => {
+                state.temp_memory_bytes_per_column = val;
+                Task::none()
+            }
+            Message::SaveSettings => {
+                state.memory_bytes_per_column = state.temp_memory_bytes_per_column;
+                state.memory_bytes_per_row = state.temp_memory_bytes_per_row;
+                state.show_settings = false;
+                let _ = state.save_config();
+                Task::none()
+            }
         }
     }
 
     pub fn view(&self) -> Element<'_, Message> {
+        if self.show_settings {
+            self.view_settings()
+        } else {
+            self.view_main()
+        }
+    }
+
+    fn view_main(&self) -> Element<'_, Message> {
         let mut content = column![].spacing(2).padding(4);
 
         let header = row![
             text("Breadboard").size(36).width(Fill),
-            button(text("Exit")).on_press(Message::Exit)
+            button(text("Config")).on_press(Message::OpenSettings)
         ]
         .spacing(8);
         content = content.push(header);
@@ -298,6 +346,45 @@ impl UInterface {
         status_bar = status_bar.push(text!("Current instruction: {}", self.cpu.get_instruction()));
         content = content.push(status_bar);
 
+        container(content).into()
+    }
+
+    fn view_settings(&self) -> Element<'_, Message> {
+        let mut content = column![].spacing(2).padding(4);
+
+        let header = row![
+            text("Breadboard").size(36).width(Fill),
+            button(text("Cancel")).on_press(Message::CloseSettings),
+            button(text("Save")).on_press(Message::SaveSettings),
+        ]
+        .spacing(8);
+        content = content.push(header);
+
+        content = content.push(rule::horizontal(2));
+
+        content = content.push(
+            row![
+                text("Bytes of memory per row:"),
+                slider(1.0..=16.0, self.temp_memory_bytes_per_row as f64, |val| {
+                    Message::SettingsRowChanged(val as usize)
+                }),
+                text!("{}", self.temp_memory_bytes_per_row)
+            ]
+            .spacing(4)
+            .padding(4),
+        );
+
+        content = content.push(
+            row![
+                text("Bytes of memory per column:"),
+                slider(8.0..=256.0, self.temp_memory_bytes_per_column as f64, |val| {
+                    Message::SettingsColumnChanged(val as usize)
+                }),
+                text!("{}", self.temp_memory_bytes_per_column)
+            ]
+            .spacing(4)
+            .padding(4),
+        );
         container(content).into()
     }
 }
