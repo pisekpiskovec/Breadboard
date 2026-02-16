@@ -189,8 +189,10 @@ impl UInterface {
                 Task::none()
             }
             Message::LoadBinToFlash => {
+                state.cpu = ATmemory::init();
+                state.flash_file = None;
                 let file = FileDialog::new()
-                    .add_filter("Binary file", &["bin"])
+                    .add_filter("Binary file", &["bin", "obj"])
                     .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
                     .set_title("Open binary file")
                     .pick_file();
@@ -200,18 +202,16 @@ impl UInterface {
                     if let Some(path_str) = path.to_str() {
                         let _ = state.cpu.load_bin(path_str);
                     } else {
-                        state.cpu.erase_flash();
-                        state.flash_file = None;
                         eprintln!("Error: Path is not valid UTF-8.");
                     }
                 } else {
-                    state.cpu.erase_flash();
-                    state.flash_file = None;
                     eprintln!("Error: No file selected.");
                 }
                 Task::none()
             }
             Message::LoadHexToFlash => {
+                state.cpu = ATmemory::init();
+                state.flash_file = None;
                 let file = FileDialog::new()
                     .add_filter("Hex file", &["hex"])
                     .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
@@ -223,13 +223,9 @@ impl UInterface {
                     if let Some(path_str) = path.to_str() {
                         let _ = state.cpu.load_hex(path_str);
                     } else {
-                        state.cpu.erase_flash();
-                        state.flash_file = None;
                         eprintln!("Error: Path is not valid UTF-8.");
                     }
                 } else {
-                    state.cpu.erase_flash();
-                    state.flash_file = None;
                     eprintln!("Error: No file selected.");
                 }
                 Task::none()
