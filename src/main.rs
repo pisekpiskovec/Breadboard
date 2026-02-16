@@ -1,3 +1,4 @@
+mod config;
 mod memory;
 mod ui_main;
 

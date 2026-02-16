@@ -3,9 +3,10 @@ use std::path::PathBuf;
 use iced::theme::Mode;
 use iced::widget::{button, column, container, row, rule, scrollable, text};
 use iced::Length::Fill;
-use iced::{Element, Font, Task, Theme, system, window};
+use iced::{system, window, Element, Font, Task, Theme};
 use rfd::FileDialog;
 
+use crate::config::Config;
 use crate::memory::ATmemory;
 
 #[derive(Debug)]
@@ -44,22 +45,24 @@ impl UInterface {
         row = row.push(text!("{:04X}:", addr).font(Font::MONOSPACE));
 
         for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_byte = if usize::from(self.cpu.pc()) == seg || usize::from(self.cpu.pc() + 1) == seg {
-                text!(" {:02X}", self.cpu.flash()[seg]).style(text::primary)
-            } else {
-                text!(" {:02X}", self.cpu.flash()[seg])
-            };
+            let seg_byte =
+                if usize::from(self.cpu.pc()) == seg || usize::from(self.cpu.pc() + 1) == seg {
+                    text!(" {:02X}", self.cpu.flash()[seg]).style(text::primary)
+                } else {
+                    text!(" {:02X}", self.cpu.flash()[seg])
+                };
             row = row.push(seg_byte.font(Font::MONOSPACE));
         }
 
         row = row.push(text("        ").font(Font::MONOSPACE));
 
         for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_char = if usize::from(self.cpu.pc()) == seg || usize::from(self.cpu.pc() + 1) == seg {
-                text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg])).style(text::primary)
-            } else {
-                text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg]))
-            };
+            let seg_char =
+                if usize::from(self.cpu.pc()) == seg || usize::from(self.cpu.pc() + 1) == seg {
+                    text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg])).style(text::primary)
+                } else {
+                    text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg]))
+                };
             row = row.push(seg_char.font(Font::MONOSPACE));
         }
 
@@ -88,14 +91,37 @@ impl UInterface {
     }
 
     pub fn new() -> Self {
+        let config = Config::load().unwrap_or_default();
+
         Self {
-            theme_mode: Mode::Light,
+            theme_mode: match config.theme.mode.as_str() {
+                "Light" => Mode::Light,
+                "Dark" => Mode::Dark,
+                _ => Mode::None,
+            },
             theme: Theme::Dark,
             cpu: ATmemory::init(),
             flash_file: None,
-            memory_bytes_per_row: 8,
-            memory_bytes_per_column: 128,
+            memory_bytes_per_row: config.display.memory_bytes_per_row,
+            memory_bytes_per_column: config.display.memory_bytes_per_column,
         }
+    }
+
+    fn save_config(&self) -> Result<(), String> {
+        let config = Config {
+            display: crate::config::DisplayConfig {
+                memory_bytes_per_row: self.memory_bytes_per_row,
+                memory_bytes_per_column: self.memory_bytes_per_column,
+            },
+            theme: crate::config::ThemeConfig {
+                mode: match self.theme_mode {
+                    Mode::Light => "Light".to_string(),
+                    Mode::Dark => "Dark".to_string(),
+                    Mode::None => String::new(),
+                },
+            },
+        };
+        config.save()
     }
 
     fn render_flash_memory(&self) -> Element<'_, Message> {
