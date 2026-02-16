@@ -39,7 +39,7 @@ impl fmt::Display for Instruction {
 fn parse_hex_line(line: &str) -> Result<Option<HexRecord>, String> {
     let hex_string = line.trim_start_matches(':');
 
-    if hex_string.len() % 2 != 0 {
+    if !hex_string.len().is_multiple_of(2) {
         return Err(String::from("Cannot parse uneven hex lines."));
     }
 
