@@ -1,7 +1,7 @@
 mod memory;
-mod main_ui;
+mod ui_main;
 
-use crate::main_ui::UInterface;
+use crate::ui_main::UInterface;
 
 fn main() -> iced::Result {
     iced::application(UInterface::new, UInterface::update, UInterface::view)
