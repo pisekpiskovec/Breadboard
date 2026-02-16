@@ -18,10 +18,14 @@ pub struct UInterface {
     theme: Theme,
     theme_mode: Mode,
     show_settings: bool,
+    instructions_per_tick: u8,
+    ticks_per_second: u8,
 
     // Temp settings value
     temp_memory_bytes_per_row: usize,
     temp_memory_bytes_per_column: usize,
+    temp_instructions_per_tick: u8,
+    temp_ticks_per_second: u8,
 }
 
 #[derive(Debug, Clone)]
@@ -36,6 +40,8 @@ pub enum Message {
     CloseSettings,
     SettingsRowChanged(usize),
     SettingsColumnChanged(usize),
+    SettingsInsTickChanged(u8),
+    SettingsTickSecChanged(u8),
     SaveSettings,
 }
 
@@ -117,6 +123,10 @@ impl UInterface {
             show_settings: false,
             temp_memory_bytes_per_row: config.display.memory_bytes_per_row,
             temp_memory_bytes_per_column: config.display.memory_bytes_per_column,
+            instructions_per_tick: 1,
+            ticks_per_second: 1,
+            temp_instructions_per_tick: 1,
+            temp_ticks_per_second: 1,
         }
     }
 
@@ -256,10 +266,20 @@ impl UInterface {
             Message::SaveSettings => {
                 state.memory_bytes_per_column = state.temp_memory_bytes_per_column;
                 state.memory_bytes_per_row = state.temp_memory_bytes_per_row;
+                state.instructions_per_tick = state.temp_instructions_per_tick;
+                state.ticks_per_second = state.temp_ticks_per_second;
                 state.show_settings = false;
                 let _ = state.save_config();
                 Task::none()
             }
+            Message::SettingsInsTickChanged(val) => {
+                state.temp_instructions_per_tick = val;
+                Task::none()
+            },
+            Message::SettingsTickSecChanged(val) => {
+                state.temp_ticks_per_second = val;
+                Task::none()
+            },
         }
     }
 
@@ -388,6 +408,34 @@ impl UInterface {
                     |val| { Message::SettingsColumnChanged(val as usize) }
                 ),
                 text!("{}", self.temp_memory_bytes_per_column)
+            ]
+            .spacing(4)
+            .padding(4),
+        );
+
+        content = content.push(
+            row![
+                text("Instructions per Tick:"),
+                slider(
+                    1.0..=64.0,
+                    self.temp_instructions_per_tick as f64,
+                    |val| { Message::SettingsInsTickChanged(val as u8) }
+                ),
+                text!("{} instructions/tick", self.temp_instructions_per_tick)
+            ]
+            .spacing(4)
+            .padding(4),
+        );
+
+        content = content.push(
+            row![
+                text("Bytes of memory per column:"),
+                slider(
+                    1.0..=20.0,
+                    self.temp_ticks_per_second as f64,
+                    |val| { Message::SettingsTickSecChanged(val as u8) }
+                ),
+                text!("{} ticks/second", self.temp_ticks_per_second)
             ]
             .spacing(4)
             .padding(4),
