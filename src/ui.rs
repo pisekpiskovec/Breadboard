@@ -325,7 +325,7 @@ impl UInterface {
                 column![
                     text(format!("Program Counter | {:#06X}", self.cpu.pc())),
                     text(format!("Stack Pointer | {:#04X}", self.cpu.sp())),
-                    text(format!("Status Register | {:#04X}", self.cpu.sreg())),
+                    text(format!("Status Register | {:#08b}", self.cpu.sreg())),
                 ]
                 .padding(4)
             )
