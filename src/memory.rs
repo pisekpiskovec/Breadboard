@@ -200,8 +200,12 @@ impl ATmemory {
         match opcode {
             0x0000 => Ok(Instruction::NOP),
             x if (x & 0xF000) == 0xE000 => Ok(Instruction::LDI {
-                dest: ( 0x10 | ((x >> 4) & 0x0F)) as u8,
+                dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
                 value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
+            }),
+            x if (x & 0xFC00) == 0xC00 => Ok(Instruction::ADD {
+                dest: ((x >> 4) & 0x1F) as u8,
+                src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
             0x4A08 => Ok(Instruction::SEC),
             x if (x & 0xFE0F) == 0x9403 => Ok(Instruction::INC {
@@ -216,6 +220,15 @@ impl ATmemory {
     }
     fn execute(&mut self, instruction: Instruction) -> Result<(), String> {
         match instruction {
+            Instruction::ADD { dest, src } => {
+                self.registers[dest as usize] = self.registers[dest as usize].wrapping_add(self.registers[src as usize]);
+                // Zero flag
+                if self.registers[dest as usize] == 0 { self.sreg |= 0b00000010;} else {self.sreg &= 0b11111101;}
+                // Carry flag
+                if self.registers[dest as usize] + self.registers[src as usize] > u8::MAX { self.sreg |= 0b00000001;} else {self.sreg &= 0b11111110;}
+                self.pc += 2;
+                Ok(())
+            }
             Instruction::CLC => {
                 self.sreg &= 0b11111110;
                 self.pc += 2;
@@ -261,9 +274,6 @@ impl ATmemory {
         }
     }
 }
-
-// 16(10) = 1|0000(2)
-// 31(10) = 1|1111(2)
 
 // ( x & 0xFE0F ) == 0x9403
 //    INC = 1001|010d|dddd|0011
