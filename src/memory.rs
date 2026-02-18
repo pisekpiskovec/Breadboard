@@ -241,44 +241,73 @@ impl ATmemory {
     fn execute(&mut self, instruction: Instruction) -> Result<(), String> {
         match instruction {
             Instruction::ADD { dest, src } => {
-                let rd3 = self.registers[dest as usize] >> 3;
-                let rr3 = self.registers[src as usize] >> 3;
-                let rd7 = self.registers[dest as usize] >> 7;
-                let rr7 = self.registers[src as usize] >> 7;
+                let rd3 = Self::bit(self.registers[dest as usize], 3);
+                let rr3 = Self::bit(self.registers[src as usize], 3);
+                let rd7 = Self::bit(self.registers[dest as usize], 7);
+                let rr7 = Self::bit(self.registers[src as usize], 7);
+
                 self.registers[dest as usize] =
                     self.registers[dest as usize].wrapping_add(self.registers[src as usize]);
-                let r3 = self.registers[dest as usize] >> 3;
-                let r7 = self.registers[dest as usize] >> 7;
 
-                // Half-Carry flag
+                let r3 = Self::bit(self.registers[dest as usize], 3);
+                let r7 = Self::bit(self.registers[dest as usize], 7);
+                let n = r7 == 1;
+                let v = (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7) != 0;
+
+                // H - Half-Carry flag
                 self.update_flag(0b00100000, (rd3 & rr3 | rr3 & !r3 | !r3 & rd3) != 0);
-                // Signed Tests flag
-                self.update_flag(
-                    0b00010000,
-                    (r7 == 1) ^ (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7 != 0),
-                );
-                // Two Complements flag
-                self.update_flag(0b00001000, (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7) != 0);
-                // Negative flag
-                self.update_flag(0b00000100, r7 == 1);
-                // Zero flag
+                // S - Signed Tests flag
+                self.update_flag(0b00010000, n ^ v);
+                // V - Two Complements flag
+                self.update_flag(0b00001000, v);
+                // N - Negative flag
+                self.update_flag(0b00000100, n);
+                // Z - Zero flag
                 self.update_flag(0b00000010, self.registers[dest as usize] == 0);
-                // Carry flag
+                // C - Carry flag
                 self.update_flag(0b00000001, (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0);
 
                 self.pc += 2;
                 Ok(())
             }
             Instruction::CLC => {
-                self.sreg &= 0b11111110;
+                self.clear_flag(0b00000001);
                 self.pc += 2;
                 Ok(())
             }
             Instruction::DEC { reg } => {
-                // TODO: Implement Negative and oVerflow flags
                 self.registers[reg as usize] = self.registers[reg as usize].wrapping_sub_signed(1);
+                let r7 = Self::bit(self.registers[reg as usize], 7);
 
-                // Zero flag
+                // S - Signed Tests flag
+                self.update_flag(
+                    0b00010000,
+                    (r7 == 1) ^ (self.registers[reg as usize] == 0x7F),
+                );
+                // V - Two Complements flag
+                self.update_flag(0b00001000, self.registers[reg as usize] == 0x7F);
+                // N - Negative flag
+                self.update_flag(0b00000100, r7 == 1);
+                // Z - Zero flag
+                self.update_flag(0b00000010, self.registers[reg as usize] == 0);
+
+                self.pc += 2;
+                Ok(())
+            }
+            Instruction::INC { reg } => {
+                self.registers[reg as usize] = self.registers[reg as usize].wrapping_add(1);
+                let r7 = Self::bit(self.registers[reg as usize], 7);
+
+                // S - Signed Tests flag
+                self.update_flag(
+                    0b00010000,
+                    (r7 == 1) ^ (self.registers[reg as usize] == 0x80),
+                );
+                // V - Two Complements flag
+                self.update_flag(0b00001000, self.registers[reg as usize] == 0x80);
+                // N - Negative flag
+                self.update_flag(0b00000100, r7 == 1);
+                // Z - Zero flag
                 self.update_flag(0b00000010, self.registers[reg as usize] == 0);
 
                 self.pc += 2;
@@ -289,22 +318,12 @@ impl ATmemory {
                 self.pc += 2;
                 Ok(())
             }
-            Instruction::INC { reg } => {
-                // TODO: Implement Negative and oVerflow flags
-                self.registers[reg as usize] = self.registers[reg as usize].wrapping_add(1);
-
-                // Zero flag
-                self.update_flag(0b00000010, self.registers[reg as usize] == 0);
-
-                self.pc += 2;
-                Ok(())
-            }
             Instruction::NOP => {
                 self.pc += 2;
                 Ok(())
             }
             Instruction::SEC => {
-                self.sreg |= 0b00000001;
+                self.set_flag(0b00000001);
                 self.pc += 2;
                 Ok(())
             }
@@ -325,6 +344,10 @@ impl ATmemory {
             true => self.set_flag(mask),
             false => self.clear_flag(mask),
         }
+    }
+
+    fn bit(value: u8, position: u8) -> u8 {
+        (value >> position) & 1
     }
 }
 
