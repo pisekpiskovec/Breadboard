@@ -166,6 +166,26 @@ impl ATmemory {
         Ok(())
     }
 
+    /// Clears current flash and loads content from vector
+    ///
+    /// # Errors
+    ///
+    /// Vector is bigger than flash.
+    pub fn load_flash_from_vec(&mut self, content: Vec<u8>) -> Result<(), String> {
+        self.erase_flash();
+
+        if content.len() > self.flash.len() {
+            return Err(format!(
+                "Binary too large: {} bytes (max: {})",
+                content.len(),
+                self.flash.len()
+            ));
+        }
+
+        self.flash[..content.len()].copy_from_slice(&content);
+        Ok(())
+    }
+
     pub fn erase_flash(&mut self) {
         self.flash = [0; 16384];
         self.pc = 0;
@@ -203,7 +223,7 @@ impl ATmemory {
                 dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
                 value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
             }),
-            x if (x & 0xFC00) == 0xC00 => Ok(Instruction::ADD {
+            x if (x & 0xFC00) == 0x0C00 => Ok(Instruction::ADD {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
@@ -221,11 +241,20 @@ impl ATmemory {
     fn execute(&mut self, instruction: Instruction) -> Result<(), String> {
         match instruction {
             Instruction::ADD { dest, src } => {
+                let rd7 = self.registers[dest as usize] >> 7;
+                let rr7 = self.registers[src as usize] >> 7;
                 self.registers[dest as usize] = self.registers[dest as usize].wrapping_add(self.registers[src as usize]);
+                let r7 = self.registers[dest as usize] >> 7;
+                
+                // Two Complements flag
+                if rd7 & rr7 & !r7 | !rd7 & !rr7 & r7 != 0 { self.sreg |= 0b00001000;} else {self.sreg &= 0b11110111;}
+                // Negative flag
+                if r7 == 1 { self.sreg |= 0b00000100;} else {self.sreg &= 0b11111011;}
                 // Zero flag
                 if self.registers[dest as usize] == 0 { self.sreg |= 0b00000010;} else {self.sreg &= 0b11111101;}
                 // Carry flag
-                if self.registers[dest as usize] + self.registers[src as usize] > u8::MAX { self.sreg |= 0b00000001;} else {self.sreg &= 0b11111110;}
+                if rd7 & rr7 | rr7 & !r7 | !r7 & rd7 != 0 { self.sreg |= 0b00000001;} else {self.sreg &= 0b11111110;}
+
                 self.pc += 2;
                 Ok(())
             }
