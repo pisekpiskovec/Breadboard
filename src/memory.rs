@@ -5,7 +5,7 @@ use std::fs::read_to_string;
 pub(crate) struct ATmemory {
     registers: [u8; 32], // 32 x 8 General Purpose Working Registers
     sreg: u8,            // Status register
-    pc: u8,              // Program Counter register
+    pc: u16,             // Program Counter register
     sp: u8,              // Stack Pointer register
     flash: [u8; 16384],  // 16K Bytes of In-System Self-Programmable Flash
     sram: [u8; 1024],    // 1K Byte Internal SRAM
@@ -103,7 +103,7 @@ impl ATmemory {
     pub fn sreg(&self) -> u8 {
         self.sreg
     }
-    pub fn pc(&self) -> u8 {
+    pub fn pc(&self) -> u16 {
         self.pc
     }
     pub fn sp(&self) -> u8 {
