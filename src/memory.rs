@@ -241,19 +241,26 @@ impl ATmemory {
     fn execute(&mut self, instruction: Instruction) -> Result<(), String> {
         match instruction {
             Instruction::ADD { dest, src } => {
+                let rd3 = self.registers[dest as usize] >> 3;
+                let rr3 = self.registers[src as usize] >> 3;
                 let rd7 = self.registers[dest as usize] >> 7;
                 let rr7 = self.registers[src as usize] >> 7;
                 self.registers[dest as usize] = self.registers[dest as usize].wrapping_add(self.registers[src as usize]);
+                let r3 = self.registers[dest as usize] >> 3;
                 let r7 = self.registers[dest as usize] >> 7;
                 
+                // Half-Carry flag
+                if (rd3 & rr3 | rr3 & !r3 | !r3 & rd3) != 0 { self.sreg |= 0b00100000;} else {self.sreg &= 0b11011111;}
+                // Signed Tests flag
+                if (r7 == 1) ^ (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7 != 0) { self.sreg |= 0b00010000;} else {self.sreg &= 0b11101111;}
                 // Two Complements flag
-                if rd7 & rr7 & !r7 | !rd7 & !rr7 & r7 != 0 { self.sreg |= 0b00001000;} else {self.sreg &= 0b11110111;}
+                if (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7) != 0 { self.sreg |= 0b00001000;} else {self.sreg &= 0b11110111;}
                 // Negative flag
                 if r7 == 1 { self.sreg |= 0b00000100;} else {self.sreg &= 0b11111011;}
                 // Zero flag
                 if self.registers[dest as usize] == 0 { self.sreg |= 0b00000010;} else {self.sreg &= 0b11111101;}
                 // Carry flag
-                if rd7 & rr7 | rr7 & !r7 | !r7 & rd7 != 0 { self.sreg |= 0b00000001;} else {self.sreg &= 0b11111110;}
+                if (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0 { self.sreg |= 0b00000001;} else {self.sreg &= 0b11111110;}
 
                 self.pc += 2;
                 Ok(())
