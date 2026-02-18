@@ -23,3 +23,15 @@ fn tst_add() {
     }
     assert_eq!(cpu.registers()[16], 0x00)
 }
+
+#[test]
+/// Subtract 5 out of 129
+fn tst_sub() {
+    let mut cpu = ATmemory::init();
+    let program: Vec<u8> = vec![0x01, 0xE8, 0x15, 0xE0, 0x01, 0x1B];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in program.iter().enumerate().take(2) {
+        cpu.step().ok();
+    }
+    assert_eq!(cpu.registers()[16], 124)
+}

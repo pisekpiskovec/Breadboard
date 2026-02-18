@@ -219,6 +219,10 @@ impl ATmemory {
     fn decode(&self, opcode: u16) -> Result<Instruction, String> {
         match opcode {
             0x0000 => Ok(Instruction::NOP),
+            x if (x & 0xFC00) == 0x1800 => Ok(Instruction::SUB {
+                dest: ((x >> 4) & 0x1F) as u8,
+                src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
+            }),
             x if (x & 0xF000) == 0xE000 => Ok(Instruction::LDI {
                 dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
                 value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
@@ -324,6 +328,36 @@ impl ATmemory {
             }
             Instruction::SEC => {
                 self.set_flag(0b00000001);
+                self.pc += 2;
+                Ok(())
+            }
+            Instruction::SUB { dest, src } => {
+                let rd3 = Self::bit(self.registers[dest as usize], 3);
+                let rr3 = Self::bit(self.registers[src as usize], 3);
+                let rd7 = Self::bit(self.registers[dest as usize], 7);
+                let rr7 = Self::bit(self.registers[src as usize], 7);
+
+                self.registers[dest as usize] =
+                    self.registers[dest as usize].wrapping_sub(self.registers[src as usize]);
+
+                let r3 = Self::bit(self.registers[dest as usize], 3);
+                let r7 = Self::bit(self.registers[dest as usize], 7);
+                let n = r7 == 1;
+                let v = (rd7 & !rr7 & !r7 | !rd7 & rr7 & r7) != 0;
+
+                // H - Half-Carry flag
+                self.update_flag(0b00100000, (!rd3 & rr3 | rr3 & r3 | r3 & !rd3) != 0);
+                // S - Signed Tests flag
+                self.update_flag(0b00010000, n ^ v);
+                // V - Two Complements flag
+                self.update_flag(0b00001000, v);
+                // N - Negative flag
+                self.update_flag(0b00000100, n);
+                // Z - Zero flag
+                self.update_flag(0b00000010, self.registers[dest as usize] == 0);
+                // C - Carry flag
+                self.update_flag(0b00000001, (!rd7 & rr7 | rr7 & r7 | r7 & !rd7) != 0);
+
                 self.pc += 2;
                 Ok(())
             }
