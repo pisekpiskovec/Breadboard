@@ -245,22 +245,26 @@ impl ATmemory {
                 let rr3 = self.registers[src as usize] >> 3;
                 let rd7 = self.registers[dest as usize] >> 7;
                 let rr7 = self.registers[src as usize] >> 7;
-                self.registers[dest as usize] = self.registers[dest as usize].wrapping_add(self.registers[src as usize]);
+                self.registers[dest as usize] =
+                    self.registers[dest as usize].wrapping_add(self.registers[src as usize]);
                 let r3 = self.registers[dest as usize] >> 3;
                 let r7 = self.registers[dest as usize] >> 7;
-                
+
                 // Half-Carry flag
-                if (rd3 & rr3 | rr3 & !r3 | !r3 & rd3) != 0 { self.sreg |= 0b00100000;} else {self.sreg &= 0b11011111;}
+                self.update_flag(0b00100000, (rd3 & rr3 | rr3 & !r3 | !r3 & rd3) != 0);
                 // Signed Tests flag
-                if (r7 == 1) ^ (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7 != 0) { self.sreg |= 0b00010000;} else {self.sreg &= 0b11101111;}
+                self.update_flag(
+                    0b00010000,
+                    (r7 == 1) ^ (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7 != 0),
+                );
                 // Two Complements flag
-                if (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7) != 0 { self.sreg |= 0b00001000;} else {self.sreg &= 0b11110111;}
+                self.update_flag(0b00001000, (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7) != 0);
                 // Negative flag
-                if r7 == 1 { self.sreg |= 0b00000100;} else {self.sreg &= 0b11111011;}
+                self.update_flag(0b00000100, r7 == 1);
                 // Zero flag
-                if self.registers[dest as usize] == 0 { self.sreg |= 0b00000010;} else {self.sreg &= 0b11111101;}
+                self.update_flag(0b00000010, self.registers[dest as usize] == 0);
                 // Carry flag
-                if (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0 { self.sreg |= 0b00000001;} else {self.sreg &= 0b11111110;}
+                self.update_flag(0b00000001, (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0);
 
                 self.pc += 2;
                 Ok(())
@@ -273,11 +277,10 @@ impl ATmemory {
             Instruction::DEC { reg } => {
                 // TODO: Implement Negative and oVerflow flags
                 self.registers[reg as usize] = self.registers[reg as usize].wrapping_sub_signed(1);
-                if self.registers[reg as usize] == 0 {
-                    self.sreg |= 0b00000010;
-                } else {
-                    self.sreg &= 0b11111101;
-                }
+
+                // Zero flag
+                self.update_flag(0b00000010, self.registers[reg as usize] == 0);
+
                 self.pc += 2;
                 Ok(())
             }
@@ -289,11 +292,10 @@ impl ATmemory {
             Instruction::INC { reg } => {
                 // TODO: Implement Negative and oVerflow flags
                 self.registers[reg as usize] = self.registers[reg as usize].wrapping_add(1);
-                if self.registers[reg as usize] == 0 {
-                    self.sreg |= 0b00000010;
-                } else {
-                    self.sreg &= 0b11111101;
-                }
+
+                // Zero flag
+                self.update_flag(0b00000010, self.registers[reg as usize] == 0);
+
                 self.pc += 2;
                 Ok(())
             }
@@ -307,6 +309,21 @@ impl ATmemory {
                 Ok(())
             }
             _ => Err(String::from("Unable to execute instruction")),
+        }
+    }
+
+    fn set_flag(&mut self, mask: u8) {
+        self.sreg |= mask;
+    }
+
+    fn clear_flag(&mut self, mask: u8) {
+        self.sreg &= !mask;
+    }
+
+    fn update_flag(&mut self, mask: u8, condition: bool) {
+        match condition {
+            true => self.set_flag(mask),
+            false => self.clear_flag(mask),
         }
     }
 }
