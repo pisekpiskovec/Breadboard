@@ -13,15 +13,16 @@ fn tst_ldi() {
 }
 
 #[test]
-/// Load adds 2 to 254 in r16
+/// Adds 16 + 3
 fn tst_add() {
     let mut cpu = ATmemory::init();
-    let program: Vec<u8> = vec![0x0E, 0x0F, 0x12, 0xE0, 0x01, 0x0F];
+    let program: Vec<u8> = vec![0x00, 0xE1, 0x13, 0xE0, 0x01, 0x0F];
     cpu.load_flash_from_vec(program.clone()).ok();
-    for _ in program.iter().enumerate().take(2) {
+    for (idx, _) in program.iter().enumerate() {
+        println!("{}", idx);
         cpu.step().ok();
     }
-    assert_eq!(cpu.registers()[16], 0x00)
+    assert_eq!(cpu.registers()[16], 19)
 }
 
 #[test]
@@ -30,7 +31,8 @@ fn tst_sub() {
     let mut cpu = ATmemory::init();
     let program: Vec<u8> = vec![0x01, 0xE8, 0x15, 0xE0, 0x01, 0x1B];
     cpu.load_flash_from_vec(program.clone()).ok();
-    for _ in program.iter().enumerate().take(2) {
+    for (idx, _) in program.iter().enumerate() {
+        println!("{}", idx);
         cpu.step().ok();
     }
     assert_eq!(cpu.registers()[16], 124)
