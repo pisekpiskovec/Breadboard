@@ -168,6 +168,20 @@ impl UInterface {
         scrollable(rows.padding(4)).width(Fill).into()
     }
 
+    fn render_sreg(&self) -> Element<'_, Message> {
+        let mut cols = row![text("Status Register | ")].spacing(2);
+        let flags = ["I", "T", "H", "S", "V", "N", "Z", "C"];
+
+        for (idx, val) in flags.iter().enumerate() {
+            match (self.cpu.sreg() << idx & 0x80) == 128 {
+                true => cols = cols.push(text!("{}", val).style(text::primary)),
+                false => cols = cols.push(text!("{}", val)),
+            }
+        }
+
+        scrollable(cols).height(Fill).into()
+    }
+
     pub fn subscription(&self) -> iced::Subscription<Message> {
         system::theme_changes().map(Message::ThemeChanged)
     }
@@ -323,9 +337,9 @@ impl UInterface {
         let left_sidebar = column![
             scrollable(
                 column![
-                    text(format!("Program Counter | {:#06X}", self.cpu.pc())),
-                    text(format!("Stack Pointer | {:#04X}", self.cpu.sp())),
-                    text(format!("Status Register | {:#08b}", self.cpu.sreg())),
+                    text!("Program Counter | {:#06X}", self.cpu.pc()),
+                    text!("Stack Pointer | {:#04X}", self.cpu.sp()),
+                    Self::render_sreg(self)
                 ]
                 .padding(4)
             )
