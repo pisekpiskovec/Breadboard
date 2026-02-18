@@ -239,6 +239,9 @@ impl ATmemory {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
             0x9488 => Ok(Instruction::CLC),
+            x if (x & 0xF000) == 0xC000 => Ok(Instruction::RJMP {
+                offset: ((((x & 0xFFF) << 4) as i16) >> 4),
+            }),
             _ => Err(String::from("Unable to decode instruction")),
         }
     }
@@ -326,6 +329,12 @@ impl ATmemory {
                 self.pc += 2;
                 Ok(())
             }
+            Instruction::RJMP { offset } => {
+                let pc_in_words = (self.pc / 2) as i32;
+                let new_pc_in_words = pc_in_words + offset as i32 + 1;
+                self.pc = (new_pc_in_words * 2) as u16;
+                Ok(())
+            }
             Instruction::SEC => {
                 self.set_flag(0b00000001);
                 self.pc += 2;
@@ -385,19 +394,20 @@ impl ATmemory {
     }
 }
 
-// ( x & 0xFE0F ) == 0x9403
+// (x & 0xFE0F) == 0x9403
 //    INC = 1001|010d|dddd|0011
 // 0xFE0F = 1111|1110|0000|1111 => mask
 // 0x9403 = 1001|0100|0000|0011 => mask result
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// ( x & 0xF000 ) == 0xE000
-//    DEC = 1110|KKKK|dddd|KKKK
+// (x & 0xF000) == 0xF000
+//   RJMP = 1100|kkkk|kkkk|kkkk
 // 0xF000 = 1111|0000|0000|0000 => mask
-// 0xE000 = 1110|0000|0000|0000 => mask result
+// 0x1800 = 1100|1000|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK
 // 0000 1110 KKKK dddd => >>4
 // 0000 0000 1111 0000 => maskH (F0)
 // 0000 0000 0000 1111 => maskL (0F)
+// 0000111111111111
