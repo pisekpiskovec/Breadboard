@@ -6,7 +6,7 @@ pub(crate) struct ATmemory {
     registers: [u8; 32], // 32 x 8 General Purpose Working Registers
     sreg: u8,            // Status register
     pc: u16,             // Program Counter register
-    sp: u8,              // Stack Pointer register
+    sp: u16,              // Stack Pointer register
     flash: [u8; 16384],  // 16K Bytes of In-System Self-Programmable Flash
     sram: [u8; 1024],    // 1K Byte Internal SRAM
 }
@@ -25,6 +25,9 @@ enum Instruction {
     INC { reg: u8 },             // Increment
     LDI { dest: u8, value: u8 }, // Load Immediate
     NOP,                         // No Operation
+    RCALL { offset: i16 },       // Relative Call to Subroutine
+    RET,                         // Return from Subroutine
+    RETI,                        // Return from Interrupt
     RJMP { offset: i16 },        // Relative Jump
     SEC,                         // Set Carry Flag
     SUB { dest: u8, src: u8 },   // Subtract without Carry
@@ -106,7 +109,7 @@ impl ATmemory {
     pub fn pc(&self) -> u16 {
         self.pc
     }
-    pub fn sp(&self) -> u8 {
+    pub fn sp(&self) -> u16 {
         self.sp
     }
     pub fn flash(&self) -> &[u8; 16384] {
@@ -121,7 +124,7 @@ impl ATmemory {
             registers: [0; 32],
             sreg: 0,
             pc: 0,
-            sp: 0,
+            sp: 0x3FF,
             flash: [0; 16384],
             sram: [0; 1024],
         }
@@ -242,6 +245,9 @@ impl ATmemory {
             x if (x & 0xF000) == 0xC000 => Ok(Instruction::RJMP {
                 offset: ((((x & 0xFFF) << 4) as i16) >> 4),
             }),
+            x if (x & 0xF000) == 0xD000 => Ok(Instruction::RCALL {
+                offset: ((((x & 0xFFF) << 4) as i16) >> 4),
+            }),
             _ => Err(String::from("Unable to decode instruction")),
         }
     }
@@ -329,6 +335,21 @@ impl ATmemory {
                 self.pc += 2;
                 Ok(())
             }
+            Instruction::RCALL { offset } => {
+                let st_h = (self.pc >> 8) as u8;
+                let st_l = (self.pc & 0x00FF) as u8;
+                self.sram[self.sp as usize] = st_h;
+                self.shrink_stack_pointer(None);
+                self.sram[self.sp as usize] = st_l;
+                self.shrink_stack_pointer(None);
+                
+                let pc_in_words = (self.pc / 2) as i32;
+                let new_pc_in_words = pc_in_words + offset as i32 + 1;
+                self.pc = (new_pc_in_words * 2) as u16;
+                Ok(())
+            },
+            Instruction::RET => todo!(),
+            Instruction::RETI => todo!(),
             Instruction::RJMP { offset } => {
                 let pc_in_words = (self.pc / 2) as i32;
                 let new_pc_in_words = pc_in_words + offset as i32 + 1;
@@ -392,6 +413,13 @@ impl ATmemory {
     fn bit(value: u8, position: u8) -> u8 {
         (value >> position) & 1
     }
+
+    fn shrink_stack_pointer(&mut self, amount: Option<u16>) {
+        self.sp = self.sp.wrapping_sub(amount.unwrap_or(1));
+        if self.sp == u16::MAX {
+            self.sp = 0x3FF;
+        }
+    }
 }
 
 // (x & 0xFE0F) == 0x9403
@@ -400,10 +428,10 @@ impl ATmemory {
 // 0x9403 = 1001|0100|0000|0011 => mask result
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// (x & 0xF000) == 0xF000
-//   RJMP = 1100|kkkk|kkkk|kkkk
+// (x & 0xF000) == 0xD000
+//  RCALL = 1101|kkkk|kkkk|kkkk
 // 0xF000 = 1111|0000|0000|0000 => mask
-// 0x1800 = 1100|1000|0000|0000 => mask result
+// 0x1800 = 1101|0000|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK

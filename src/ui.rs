@@ -168,6 +168,22 @@ impl UInterface {
         scrollable(rows.padding(4)).width(Fill).into()
     }
 
+    fn render_sram(&self) -> Element<'_, Message> {
+        let mut rows = column![].spacing(2);
+        for sp in (0..self.cpu.sram().len()).rev() {
+            match sp == self.cpu.sp() as usize {
+                true => {
+                    rows = rows.push(text!("{:#04X}={:#02X}", sp, self.cpu.sram()[sp]).font(Font::MONOSPACE).style(text::primary));
+                },
+                false => {
+                    rows = rows.push(text!("{:#04X}={:#02X}", sp, self.cpu.sram()[sp]).font(Font::MONOSPACE));
+                },
+            }
+        }
+
+        scrollable(rows.padding(4)).width(Fill).into()
+    }
+
     fn render_sreg(&self) -> Element<'_, Message> {
         let mut cols = row![text("Status Register | ")].spacing(2);
         let flags = ["I", "T", "H", "S", "V", "N", "Z", "C"];
@@ -345,26 +361,29 @@ impl UInterface {
             )
             .width(Fill),
             rule::horizontal(2),
-            Self::render_registers(self)
+            Self::render_registers(self),
+            rule::horizontal(2),
+            Self::render_sram(self)
         ];
 
-        // let right_sidebar = column![
-        //     text("PortA"),
-        //     text("PortB"),
-        //     text("PortC"),
-        //     text("PortD"),
-        //     text("Timer0"),
-        //     text("Timer1"),
-        //     text("Timer2"),
-        // ]
-        // .padding(2);
+        let right_sidebar = column![
+            // text("PortA"),
+            // text("PortB"),
+            // text("PortC"),
+            // text("PortD"),
+            // text("Timer0"),
+            // text("Timer1"),
+            // text("Timer2"),
+            Self::render_sram(self)
+        ]
+        .padding(2);
 
         let main_view = row![
             left_sidebar,
             rule::vertical(2),
             Self::render_flash_memory(self),
-            // rule::vertical(2),
-            // right_sidebar,
+            rule::vertical(2),
+            right_sidebar,
         ];
 
         content = content.push(main_view);
