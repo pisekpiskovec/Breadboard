@@ -261,16 +261,19 @@ impl ATmemory {
     fn execute(&mut self, instruction: Instruction) -> Result<(), String> {
         match instruction {
             Instruction::ADD { dest, src } => {
-                let rd3 = Self::bit(self.registers[dest as usize], 3);
-                let rr3 = Self::bit(self.registers[src as usize], 3);
-                let rd7 = Self::bit(self.registers[dest as usize], 7);
-                let rr7 = Self::bit(self.registers[src as usize], 7);
+                let rd3 = Self::bit(self.read_memory(dest as u16), 3);
+                let rr3 = Self::bit(self.read_memory(src as u16), 3);
+                let rd7 = Self::bit(self.read_memory(dest as u16), 7);
+                let rr7 = Self::bit(self.read_memory(src as u16), 7);
 
-                self.registers[dest as usize] =
-                    self.registers[dest as usize].wrapping_add(self.registers[src as usize]);
+                self.write_memory(
+                    dest as u16,
+                    self.read_memory(dest as u16)
+                        .wrapping_add(self.read_memory(src as u16)),
+                );
 
-                let r3 = Self::bit(self.registers[dest as usize], 3);
-                let r7 = Self::bit(self.registers[dest as usize], 7);
+                let r3 = Self::bit(self.read_memory(dest as u16), 3);
+                let r7 = Self::bit(self.read_memory(dest as u16), 7);
                 let n = r7 == 1;
                 let v = (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7) != 0;
 
@@ -334,7 +337,7 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::LDI { dest, value } => {
-                self.registers[dest as usize] = value;
+                self.write_memory(dest as u16, value);
                 self.pc += 2;
                 Ok(())
             }
