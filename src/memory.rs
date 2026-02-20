@@ -338,9 +338,9 @@ impl ATmemory {
             Instruction::RCALL { offset } => {
                 let st_h = (self.pc >> 8) as u8;
                 let st_l = (self.pc & 0x00FF) as u8;
-                self.sram[self.sp as usize] = st_h;
-                self.shrink_stack_pointer(None);
                 self.sram[self.sp as usize] = st_l;
+                self.shrink_stack_pointer(None);
+                self.sram[self.sp as usize] = st_h;
                 self.shrink_stack_pointer(None);
                 
                 let pc_in_words = (self.pc / 2) as i32;
