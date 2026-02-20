@@ -35,3 +35,20 @@ fn tst_sub() {
     }
     assert_eq!(cpu.registers()[16], 124)
 }
+
+#[test]
+/// Call a subroutine
+fn tst_rcall() {
+    let mut cpu = ATmemory::init();
+    let program: Vec<u8> = vec![
+        0x02, 0xE1, 0x01, 0xC0, 0x03, 0x95, 0xFE, 0xDF, 0xFE, 0xCF,
+    ];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..4 {
+        cpu.step().ok();
+    }
+    assert_eq!(
+        (cpu.registers()[16], cpu.sram()[0x3FE], cpu.pc()),
+        (19, 0x06, 0x0006)
+    )
+}
