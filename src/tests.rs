@@ -40,15 +40,26 @@ fn tst_sub() {
 /// Call a subroutine
 fn tst_rcall() {
     let mut cpu = ATmemory::init();
+    // Reset:
+    //     ldi r16, 0x12
+    // rjmp Main
+    //
+    // increment_reg
+    //     inc r16
+    // ret
+    //
+    // Main:
+    //     rcall increment_reg
+    // rjmp Main
     let program: Vec<u8> = vec![
-        0x02, 0xE1, 0x01, 0xC0, 0x03, 0x95, 0xFE, 0xDF, 0xFE, 0xCF,
+        0x02, 0xE1, 0x02, 0xC0, 0x03, 0x95, 0x08, 0x95, 0xFD, 0xDF, 0xFE, 0xCF
     ];
     cpu.load_flash_from_vec(program.clone()).ok();
-    for _ in 0..4 {
+    for _ in 0..5 {
         cpu.step().ok();
     }
     assert_eq!(
-        (cpu.registers()[16], cpu.sram()[0x3FF], cpu.pc()),
-        (19, 0x06, 0x0006)
+        (cpu.registers()[16], cpu.sram()[0x3FE], cpu.pc()),
+        (19, 0x0A, 0x000A)
     )
 }

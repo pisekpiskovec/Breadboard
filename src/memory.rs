@@ -337,28 +337,29 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::RCALL { offset } => {
-                let st_h = (self.pc >> 8) as u8;
-                let st_l = (self.pc & 0x00FF) as u8;
+                let future_pc = self.pc + 2;
+                let st_h = (future_pc >> 8) as u8;
+                let st_l = (future_pc & 0x00FF) as u8;
+                self.shrink_stack_pointer(None);
                 self.sram[self.sp as usize] = st_l;
                 self.shrink_stack_pointer(None);
                 self.sram[self.sp as usize] = st_h;
-                self.shrink_stack_pointer(None);
-                
+
                 let pc_in_words = (self.pc / 2) as i32;
                 let new_pc_in_words = pc_in_words + offset as i32 + 1;
                 self.pc = (new_pc_in_words * 2) as u16;
                 Ok(())
-            },
+            }
             Instruction::RET => {
                 let mut new_pc: u16;
-                self.shrink_stack_pointer(Some(-1));
                 new_pc = self.sram[self.sp as usize] as u16;
                 new_pc <<= 8;
                 self.shrink_stack_pointer(Some(-1));
                 new_pc += self.sram[self.sp as usize] as u16;
+                self.shrink_stack_pointer(Some(-1));
                 self.pc = new_pc;
                 Ok(())
-            },
+            }
             Instruction::RETI => todo!(),
             Instruction::RJMP { offset } => {
                 let pc_in_words = (self.pc / 2) as i32;
