@@ -12,6 +12,7 @@ use crate::memory::ATmemory;
 #[derive(Debug)]
 pub struct UInterface {
     cpu: ATmemory,
+    cycle_counter: usize,
     flash_file: Option<PathBuf>,
     memory_bytes_per_row: usize,
     memory_bytes_per_column: usize,
@@ -127,6 +128,7 @@ impl UInterface {
             ticks_per_second: 1,
             temp_instructions_per_tick: 1,
             temp_ticks_per_second: 1,
+            cycle_counter: 0,
         }
     }
 
@@ -226,6 +228,7 @@ impl UInterface {
             }
             Message::LoadBinToFlash => {
                 state.cpu = ATmemory::init();
+                state.cycle_counter = 0;
                 state.flash_file = None;
                 let file = FileDialog::new()
                     .add_filter("Binary file", &["bin", "obj"])
@@ -247,6 +250,7 @@ impl UInterface {
             }
             Message::LoadHexToFlash => {
                 state.cpu = ATmemory::init();
+                state.cycle_counter = 0;
                 state.flash_file = None;
                 let file = FileDialog::new()
                     .add_filter("Hex file", &["hex"])
@@ -268,11 +272,13 @@ impl UInterface {
             }
             Message::Restart => {
                 state.cpu = ATmemory::init();
+                state.cycle_counter = 0;
                 state.flash_file = None;
                 Task::none()
             }
             Message::CPUstep => {
                 let _ = state.cpu.step();
+                state.cycle_counter += 1;
                 Task::none()
             }
             Message::OpenSettings => {
@@ -361,6 +367,7 @@ impl UInterface {
                 column![
                     text!("Program Counter | {:#06X}", self.cpu.pc()),
                     text!("Stack Pointer | {:#04X}", self.cpu.sp()),
+                    text!("Cycle Counter | {:06}", self.cycle_counter),
                     Self::render_sreg(self)
                 ]
                 .padding(4)
