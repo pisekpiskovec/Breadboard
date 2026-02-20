@@ -128,7 +128,7 @@ impl ATmemory {
             registers: [0; 32],
             sreg: 0,
             pc: 0,
-            sp: 0x3FF,
+            sp: 0x45F,
             flash: [0; 16384],
             sram: [0; 1024],
             memory: [0; 1120],
