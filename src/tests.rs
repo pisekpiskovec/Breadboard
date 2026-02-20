@@ -59,7 +59,7 @@ fn tst_rcall() {
         cpu.step().ok();
     }
     assert_eq!(
-        (cpu.memory()[16], cpu.memory()[0x3FE], cpu.pc()),
+        (cpu.memory()[16], cpu.memory()[0x45E], cpu.pc()),
         (19, 0x0A, 0x000A)
     )
 }

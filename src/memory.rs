@@ -359,11 +359,9 @@ impl ATmemory {
             }
             Instruction::RET => {
                 let mut new_pc: u16;
-                new_pc = self.sram[self.sp as usize] as u16;
+                new_pc = self.pop_stack()? as u16; // PC High
                 new_pc <<= 8;
-                self.shrink_stack_pointer(Some(-1));
-                new_pc += self.sram[self.sp as usize] as u16;
-                self.shrink_stack_pointer(Some(-1));
+                new_pc += self.pop_stack()? as u16; // PC Low
                 self.pc = new_pc;
                 Ok(())
             }
