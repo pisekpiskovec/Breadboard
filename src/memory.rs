@@ -299,20 +299,20 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::DEC { reg } => {
-                self.registers[reg as usize] = self.registers[reg as usize].wrapping_sub_signed(1);
-                let r7 = Self::bit(self.registers[reg as usize], 7);
+                self.write_memory(reg as u16, self.read_memory(reg as u16).wrapping_sub(1));
+                let r7 = Self::bit(self.read_memory(reg as u16), 7);
 
                 // S - Signed Tests flag
                 self.update_flag(
                     0b00010000,
-                    (r7 == 1) ^ (self.registers[reg as usize] == 0x7F),
+                    (r7 == 1) ^ (self.read_memory(reg as u16) == 0x7F),
                 );
                 // V - Two Complements flag
-                self.update_flag(0b00001000, self.registers[reg as usize] == 0x7F);
+                self.update_flag(0b00001000, self.read_memory(reg as u16) == 0x7F);
                 // N - Negative flag
                 self.update_flag(0b00000100, r7 == 1);
                 // Z - Zero flag
-                self.update_flag(0b00000010, self.registers[reg as usize] == 0);
+                self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
 
                 self.pc += 2;
                 Ok(())
