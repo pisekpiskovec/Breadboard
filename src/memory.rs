@@ -391,9 +391,6 @@ impl ATmemory {
                 let rd7 = Self::bit(self.read_memory(dest as u16), 7);
                 let rr7 = Self::bit(self.read_memory(src as u16), 7);
 
-                // self.registers[dest as usize] =
-                //     self.registers[dest as usize].wrapping_sub(self.registers[src as usize]);
-
                 self.write_memory(
                     dest as u16,
                     self.read_memory(dest as u16)
