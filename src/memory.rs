@@ -243,6 +243,7 @@ impl ATmemory {
             }),
             0x9488 => Ok(Instruction::CLC),
             0x9508 => Ok(Instruction::RET),
+            0x9518 => Ok(Instruction::RETI),
             x if (x & 0xF000) == 0xC000 => Ok(Instruction::RJMP {
                 offset: ((((x & 0xFFF) << 4) as i16) >> 4),
             }),
@@ -360,7 +361,17 @@ impl ATmemory {
                 self.pc = new_pc;
                 Ok(())
             }
-            Instruction::RETI => todo!(),
+            Instruction::RETI => {
+                let mut new_pc: u16;
+                new_pc = self.sram[self.sp as usize] as u16;
+                new_pc <<= 8;
+                self.shrink_stack_pointer(Some(-1));
+                new_pc += self.sram[self.sp as usize] as u16;
+                self.shrink_stack_pointer(Some(-1));
+                self.set_flag(0b10000000);
+                self.pc = new_pc;
+                Ok(())
+            },
             Instruction::RJMP { offset } => {
                 let pc_in_words = (self.pc / 2) as i32;
                 let new_pc_in_words = pc_in_words + offset as i32 + 1;
