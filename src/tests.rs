@@ -33,7 +33,7 @@ fn tst_sub() {
     for _ in program.iter().enumerate() {
         cpu.step().ok();
     }
-    assert_eq!(cpu.registers()[16], 124)
+    assert_eq!(cpu.memory()[16], 124)
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn tst_rcall() {
         cpu.step().ok();
     }
     assert_eq!(
-        (cpu.registers()[16], cpu.sram()[0x3FE], cpu.pc()),
+        (cpu.memory()[16], cpu.memory()[0x3FE], cpu.pc()),
         (19, 0x0A, 0x000A)
     )
 }
