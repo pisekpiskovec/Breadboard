@@ -6,6 +6,7 @@ rjmp Main
 
 increment_reg:
         inc r16
+ret
 
 Main:
         rcall increment_reg
