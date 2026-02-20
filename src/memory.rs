@@ -210,15 +210,11 @@ impl ATmemory {
     fn decode(&self, opcode: u16) -> Result<Instruction, String> {
         match opcode {
             0x0000 => Ok(Instruction::NOP),
-            x if (x & 0xFC00) == 0x1800 => Ok(Instruction::SUB {
+            x if (x & 0xFC00) == 0x0C00 => Ok(Instruction::ADD {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
-            x if (x & 0xF000) == 0xE000 => Ok(Instruction::LDI {
-                dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
-                value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
-            }),
-            x if (x & 0xFC00) == 0x0C00 => Ok(Instruction::ADD {
+            x if (x & 0xFC00) == 0x1800 => Ok(Instruction::SUB {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
@@ -237,6 +233,10 @@ impl ATmemory {
             }),
             x if (x & 0xF000) == 0xD000 => Ok(Instruction::RCALL {
                 offset: ((((x & 0xFFF) << 4) as i16) >> 4),
+            }),
+            x if (x & 0xF000) == 0xE000 => Ok(Instruction::LDI {
+                dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
+                value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
             }),
             _ => Err(String::from("Unable to decode instruction")),
         }
