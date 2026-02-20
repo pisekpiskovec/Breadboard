@@ -414,10 +414,12 @@ impl ATmemory {
         (value >> position) & 1
     }
 
-    fn shrink_stack_pointer(&mut self, amount: Option<u16>) {
-        self.sp = self.sp.wrapping_sub(amount.unwrap_or(1));
+    fn shrink_stack_pointer(&mut self, amount: Option<i16>) {
+        self.sp = self.sp.wrapping_sub(amount.unwrap_or(1) as u16);
         if self.sp == u16::MAX {
             self.sp = 0x3FF;
+        } else if self.sp >= 1024 {
+            self.sp = 0x000;
         }
     }
 }
