@@ -119,6 +119,9 @@ impl ATmemory {
     pub fn sram(&self) -> &[u8; 1024] {
         &self.sram
     }
+    pub fn memory(&self) -> &[u8; 1120] {
+        &self.memory
+    }
 
     pub fn init() -> Self {
         Self {
@@ -445,6 +448,35 @@ impl ATmemory {
         } else if self.sp >= 1024 {
             self.sp = 0x000;
         }
+    }
+
+    fn write_memory(&mut self, addr: u16, value: u8) {
+        self.memory[addr as usize] = value;
+    }
+
+    fn read_memory(&self, addr: u16) -> u8 {
+        self.memory[addr as usize]
+    }
+
+    fn push_stack(&mut self, value: u8) {
+        self.sp = self.sp.wrapping_sub(1);
+        if self.sp < 0x0060 {
+            eprintln!("Stack overflow! SP={:#04X}", self.sp);
+        } else if self.sp > 0x045F {
+            eprintln!("Stack overflow! SP={:#04X}", self.sp);
+            self.sp = 0x045F;
+        }
+        self.write_memory(self.sp, value);
+    }
+
+    fn pop_stack(&mut self) -> u8 {
+        let ret = self.read_memory(self.sp);
+        self.sp = self.sp.wrapping_add(1);
+        if self.sp > 0x045F {
+            eprintln!("Stack underflow! SP={:#04X}", self.sp);
+            self.sp = 0x0000;
+        }
+        ret
     }
 }
 
