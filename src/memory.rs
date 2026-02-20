@@ -349,10 +349,8 @@ impl ATmemory {
                 let future_pc = self.pc + 2;
                 let st_h = (future_pc >> 8) as u8;
                 let st_l = (future_pc & 0x00FF) as u8;
-                self.shrink_stack_pointer(None);
-                self.sram[self.sp as usize] = st_l;
-                self.shrink_stack_pointer(None);
-                self.sram[self.sp as usize] = st_h;
+                self.push_stack(st_l)?;
+                self.push_stack(st_h)?;
 
                 let pc_in_words = (self.pc / 2) as i32;
                 let new_pc_in_words = pc_in_words + offset as i32 + 1;
