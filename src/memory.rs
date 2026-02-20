@@ -273,12 +273,12 @@ impl ATmemory {
                 // C - Carry flag
                 self.update_flag(0b00000001, (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0);
 
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::CLC => {
                 self.clear_flag(0b00000001);
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::DEC { reg } => {
@@ -297,7 +297,7 @@ impl ATmemory {
                 // Z - Zero flag
                 self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
 
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::INC { reg } => {
@@ -316,16 +316,16 @@ impl ATmemory {
                 // Z - Zero flag
                 self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
 
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::LDI { dest, value } => {
                 self.write_memory(dest as u16, value);
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::NOP => {
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::RCALL { offset } => {
@@ -365,7 +365,7 @@ impl ATmemory {
             }
             Instruction::SEC => {
                 self.set_flag(0b00000001);
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::SUB { dest, src } => {
@@ -398,7 +398,7 @@ impl ATmemory {
                 // C - Carry flag
                 self.update_flag(0b00000001, (!rd7 & rr7 | rr7 & r7 | r7 & !rd7) != 0);
 
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             _ => Err(String::from("Unable to execute instruction")),
