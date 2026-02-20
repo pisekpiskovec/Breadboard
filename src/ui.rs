@@ -163,8 +163,8 @@ impl UInterface {
 
     fn render_registers(&self) -> Element<'_, Message> {
         let mut rows = column![].spacing(2);
-        for reg in 0..self.cpu.registers().len() {
-            rows = rows.push(text!("R{:02}={:03}", reg, self.cpu.registers()[reg]));
+        for reg in 0..32 {
+            rows = rows.push(text!("R{:02}={:03}", reg, self.cpu.memory()[reg]));
         }
 
         scrollable(rows.padding(4)).width(Fill).into()
@@ -172,18 +172,18 @@ impl UInterface {
 
     fn render_sram(&self) -> Element<'_, Message> {
         let mut rows = column![].spacing(2);
-        for sp in (0..self.cpu.sram().len()).rev() {
+        for sp in (0x0060..0x0460).rev() {
             match sp == self.cpu.sp() as usize {
                 true => {
                     rows = rows.push(
-                        text!("{:#05X}={:#04X}", sp, self.cpu.sram()[sp])
+                        text!("{:#05X}={:#04X}", sp, self.cpu.memory()[sp])
                             .font(Font::MONOSPACE)
                             .style(text::primary),
                     );
                 }
                 false => {
                     rows = rows.push(
-                        text!("{:#05X}={:#04X}", sp, self.cpu.sram()[sp]).font(Font::MONOSPACE),
+                        text!("{:#05X}={:#04X}", sp, self.cpu.memory()[sp]).font(Font::MONOSPACE),
                     );
                 }
             }

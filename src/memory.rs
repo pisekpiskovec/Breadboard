@@ -3,18 +3,16 @@ use std::fs::read_to_string;
 
 #[derive(Debug)]
 pub(crate) struct ATmemory {
-    registers: [u8; 32], // 32 x 8 General Purpose Working Registers
-    sreg: u8,            // Status register
-    pc: u16,             // Program Counter register
-    sp: u16,              // Stack Pointer register
-    flash: [u8; 16384],  // 16K Bytes of In-System Self-Programmable Flash
-    sram: [u8; 1024],    // 1K Byte Internal SRAM
+    sreg: u8,           // Status register
+    pc: u16,            // Program Counter register
+    sp: u16,            // Stack Pointer register
+    flash: [u8; 16384], // 16K Bytes of In-System Self-Programmable Flash
+    memory: [u8; 1120], // EEPROM
 }
 
 struct HexRecord {
     address: u16,
     data: Vec<u8>,
-    byte_count: u8,
 }
 
 #[derive(Debug)]
@@ -75,16 +73,10 @@ fn parse_hex_line(line: &str) -> Result<Option<HexRecord>, String> {
 
     match record_type {
         0x00 => {
-            // Data record
-            Ok(Some(HexRecord {
-                address,
-                data,
-                byte_count,
-            }))
+            Ok(Some(HexRecord { address, data })) // Data record
         }
         0x01 => {
-            // End of file
-            Ok(None)
+            Ok(None) // End of file
         }
         _ => Err(format!("Unsuported record type: {:02X}", record_type)),
     }
@@ -100,9 +92,6 @@ fn hex_byte(s: &str) -> Result<u8, String> {
 }
 
 impl ATmemory {
-    pub fn registers(&self) -> &[u8; 32] {
-        &self.registers
-    }
     pub fn sreg(&self) -> u8 {
         self.sreg
     }
@@ -115,18 +104,17 @@ impl ATmemory {
     pub fn flash(&self) -> &[u8; 16384] {
         &self.flash
     }
-    pub fn sram(&self) -> &[u8; 1024] {
-        &self.sram
+    pub fn memory(&self) -> &[u8; 1120] {
+        &self.memory
     }
 
     pub fn init() -> Self {
         Self {
-            registers: [0; 32],
             sreg: 0,
             pc: 0,
-            sp: 0x3FF,
+            sp: 0x45F,
             flash: [0; 16384],
-            sram: [0; 1024],
+            memory: [0; 1120],
         }
     }
 
@@ -256,16 +244,19 @@ impl ATmemory {
     fn execute(&mut self, instruction: Instruction) -> Result<(), String> {
         match instruction {
             Instruction::ADD { dest, src } => {
-                let rd3 = Self::bit(self.registers[dest as usize], 3);
-                let rr3 = Self::bit(self.registers[src as usize], 3);
-                let rd7 = Self::bit(self.registers[dest as usize], 7);
-                let rr7 = Self::bit(self.registers[src as usize], 7);
+                let rd3 = Self::bit(self.read_memory(dest as u16), 3);
+                let rr3 = Self::bit(self.read_memory(src as u16), 3);
+                let rd7 = Self::bit(self.read_memory(dest as u16), 7);
+                let rr7 = Self::bit(self.read_memory(src as u16), 7);
 
-                self.registers[dest as usize] =
-                    self.registers[dest as usize].wrapping_add(self.registers[src as usize]);
+                self.write_memory(
+                    dest as u16,
+                    self.read_memory(dest as u16)
+                        .wrapping_add(self.read_memory(src as u16)),
+                );
 
-                let r3 = Self::bit(self.registers[dest as usize], 3);
-                let r7 = Self::bit(self.registers[dest as usize], 7);
+                let r3 = Self::bit(self.read_memory(dest as u16), 3);
+                let r7 = Self::bit(self.read_memory(dest as u16), 7);
                 let n = r7 == 1;
                 let v = (rd7 & rr7 & !r7 | !rd7 & !rr7 & r7) != 0;
 
@@ -278,7 +269,7 @@ impl ATmemory {
                 // N - Negative flag
                 self.update_flag(0b00000100, n);
                 // Z - Zero flag
-                self.update_flag(0b00000010, self.registers[dest as usize] == 0);
+                self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
                 // C - Carry flag
                 self.update_flag(0b00000001, (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0);
 
@@ -291,45 +282,45 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::DEC { reg } => {
-                self.registers[reg as usize] = self.registers[reg as usize].wrapping_sub_signed(1);
-                let r7 = Self::bit(self.registers[reg as usize], 7);
+                self.write_memory(reg as u16, self.read_memory(reg as u16).wrapping_sub(1));
+                let r7 = Self::bit(self.read_memory(reg as u16), 7);
 
                 // S - Signed Tests flag
                 self.update_flag(
                     0b00010000,
-                    (r7 == 1) ^ (self.registers[reg as usize] == 0x7F),
+                    (r7 == 1) ^ (self.read_memory(reg as u16) == 0x7F),
                 );
                 // V - Two Complements flag
-                self.update_flag(0b00001000, self.registers[reg as usize] == 0x7F);
+                self.update_flag(0b00001000, self.read_memory(reg as u16) == 0x7F);
                 // N - Negative flag
                 self.update_flag(0b00000100, r7 == 1);
                 // Z - Zero flag
-                self.update_flag(0b00000010, self.registers[reg as usize] == 0);
+                self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
 
                 self.pc += 2;
                 Ok(())
             }
             Instruction::INC { reg } => {
-                self.registers[reg as usize] = self.registers[reg as usize].wrapping_add(1);
-                let r7 = Self::bit(self.registers[reg as usize], 7);
+                self.write_memory(reg as u16, self.read_memory(reg as u16).wrapping_add(1));
+                let r7 = Self::bit(self.read_memory(reg as u16), 7);
 
                 // S - Signed Tests flag
                 self.update_flag(
                     0b00010000,
-                    (r7 == 1) ^ (self.registers[reg as usize] == 0x80),
+                    (r7 == 1) ^ (self.read_memory(reg as u16) == 0x80),
                 );
                 // V - Two Complements flag
-                self.update_flag(0b00001000, self.registers[reg as usize] == 0x80);
+                self.update_flag(0b00001000, self.read_memory(reg as u16) == 0x80);
                 // N - Negative flag
                 self.update_flag(0b00000100, r7 == 1);
                 // Z - Zero flag
-                self.update_flag(0b00000010, self.registers[reg as usize] == 0);
+                self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
 
                 self.pc += 2;
                 Ok(())
             }
             Instruction::LDI { dest, value } => {
-                self.registers[dest as usize] = value;
+                self.write_memory(dest as u16, value);
                 self.pc += 2;
                 Ok(())
             }
@@ -341,10 +332,8 @@ impl ATmemory {
                 let future_pc = self.pc + 2;
                 let st_h = (future_pc >> 8) as u8;
                 let st_l = (future_pc & 0x00FF) as u8;
-                self.shrink_stack_pointer(None);
-                self.sram[self.sp as usize] = st_l;
-                self.shrink_stack_pointer(None);
-                self.sram[self.sp as usize] = st_h;
+                self.push_stack(st_l)?;
+                self.push_stack(st_h)?;
 
                 let pc_in_words = (self.pc / 2) as i32;
                 let new_pc_in_words = pc_in_words + offset as i32 + 1;
@@ -353,25 +342,21 @@ impl ATmemory {
             }
             Instruction::RET => {
                 let mut new_pc: u16;
-                new_pc = self.sram[self.sp as usize] as u16;
+                new_pc = self.pop_stack()? as u16; // PC High
                 new_pc <<= 8;
-                self.shrink_stack_pointer(Some(-1));
-                new_pc += self.sram[self.sp as usize] as u16;
-                self.shrink_stack_pointer(Some(-1));
+                new_pc += self.pop_stack()? as u16; // PC Low
                 self.pc = new_pc;
                 Ok(())
             }
             Instruction::RETI => {
                 let mut new_pc: u16;
-                new_pc = self.sram[self.sp as usize] as u16;
+                new_pc = self.pop_stack()? as u16; // PC High
                 new_pc <<= 8;
-                self.shrink_stack_pointer(Some(-1));
-                new_pc += self.sram[self.sp as usize] as u16;
-                self.shrink_stack_pointer(Some(-1));
+                new_pc += self.pop_stack()? as u16; // PC Low
                 self.set_flag(0b10000000);
                 self.pc = new_pc;
                 Ok(())
-            },
+            }
             Instruction::RJMP { offset } => {
                 let pc_in_words = (self.pc / 2) as i32;
                 let new_pc_in_words = pc_in_words + offset as i32 + 1;
@@ -384,16 +369,19 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::SUB { dest, src } => {
-                let rd3 = Self::bit(self.registers[dest as usize], 3);
-                let rr3 = Self::bit(self.registers[src as usize], 3);
-                let rd7 = Self::bit(self.registers[dest as usize], 7);
-                let rr7 = Self::bit(self.registers[src as usize], 7);
+                let rd3 = Self::bit(self.read_memory(dest as u16), 3);
+                let rr3 = Self::bit(self.read_memory(src as u16), 3);
+                let rd7 = Self::bit(self.read_memory(dest as u16), 7);
+                let rr7 = Self::bit(self.read_memory(src as u16), 7);
 
-                self.registers[dest as usize] =
-                    self.registers[dest as usize].wrapping_sub(self.registers[src as usize]);
+                self.write_memory(
+                    dest as u16,
+                    self.read_memory(dest as u16)
+                        .wrapping_sub(self.read_memory(src as u16)),
+                );
 
-                let r3 = Self::bit(self.registers[dest as usize], 3);
-                let r7 = Self::bit(self.registers[dest as usize], 7);
+                let r3 = Self::bit(self.read_memory(dest as u16), 3);
+                let r7 = Self::bit(self.read_memory(dest as u16), 7);
                 let n = r7 == 1;
                 let v = (rd7 & !rr7 & !r7 | !rd7 & rr7 & r7) != 0;
 
@@ -406,7 +394,7 @@ impl ATmemory {
                 // N - Negative flag
                 self.update_flag(0b00000100, n);
                 // Z - Zero flag
-                self.update_flag(0b00000010, self.registers[dest as usize] == 0);
+                self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
                 // C - Carry flag
                 self.update_flag(0b00000001, (!rd7 & rr7 | rr7 & r7 | r7 & !rd7) != 0);
 
@@ -436,13 +424,33 @@ impl ATmemory {
         (value >> position) & 1
     }
 
-    fn shrink_stack_pointer(&mut self, amount: Option<i16>) {
-        self.sp = self.sp.wrapping_sub(amount.unwrap_or(1) as u16);
-        if self.sp == u16::MAX {
-            self.sp = 0x3FF;
-        } else if self.sp >= 1024 {
-            self.sp = 0x000;
+    fn write_memory(&mut self, addr: u16, value: u8) {
+        self.memory[addr as usize] = value;
+    }
+
+    fn read_memory(&self, addr: u16) -> u8 {
+        self.memory[addr as usize]
+    }
+
+    fn push_stack(&mut self, value: u8) -> Result<(), String> {
+        self.sp = self.sp.wrapping_sub(1);
+
+        if self.sp < 0x0060 || self.sp > 0x045F {
+            return Err(format!("Stack overflow! SP={:#04X}", self.sp));
         }
+
+        self.write_memory(self.sp, value);
+        Ok(())
+    }
+
+    fn pop_stack(&mut self) -> Result<u8, String> {
+        if self.sp > 0x045F {
+            return Err(format!("Stack underflow! SP={:#04X}", self.sp));
+        }
+
+        let ret = self.read_memory(self.sp);
+        self.sp = self.sp.wrapping_add(1);
+        Ok(ret)
     }
 }
 
