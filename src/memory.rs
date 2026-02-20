@@ -9,7 +9,7 @@ pub(crate) struct ATmemory {
     sp: u16,             // Stack Pointer register
     flash: [u8; 16384],  // 16K Bytes of In-System Self-Programmable Flash
     sram: [u8; 1024],    // 1K Byte Internal SRAM
-    memory: [u8; 1120]   // EEPROM
+    memory: [u8; 1120],  // EEPROM
 }
 
 struct HexRecord {
@@ -131,7 +131,7 @@ impl ATmemory {
             sp: 0x3FF,
             flash: [0; 16384],
             sram: [0; 1024],
-            memory: [0; 1120]
+            memory: [0; 1120],
         }
     }
 
@@ -376,7 +376,7 @@ impl ATmemory {
                 self.set_flag(0b10000000);
                 self.pc = new_pc;
                 Ok(())
-            },
+            }
             Instruction::RJMP { offset } => {
                 let pc_in_words = (self.pc / 2) as i32;
                 let new_pc_in_words = pc_in_words + offset as i32 + 1;
@@ -459,25 +459,25 @@ impl ATmemory {
         self.memory[addr as usize]
     }
 
-    fn push_stack(&mut self, value: u8) {
+    fn push_stack(&mut self, value: u8) -> Result<(), String> {
         self.sp = self.sp.wrapping_sub(1);
-        if self.sp < 0x0060 {
-            eprintln!("Stack overflow! SP={:#04X}", self.sp);
-        } else if self.sp > 0x045F {
-            eprintln!("Stack overflow! SP={:#04X}", self.sp);
-            self.sp = 0x045F;
+
+        if self.sp < 0x0060 || self.sp > 0x045F {
+            return Err(format!("Stack overflow! SP={:#04X}", self.sp));
         }
+
         self.write_memory(self.sp, value);
+        Ok(())
     }
 
-    fn pop_stack(&mut self) -> u8 {
+    fn pop_stack(&mut self) -> Result<u8, String> {
+        if self.sp > 0x045F {
+            return Err(format!("Stack underflow! SP={:#04X}", self.sp));
+        }
+
         let ret = self.read_memory(self.sp);
         self.sp = self.sp.wrapping_add(1);
-        if self.sp > 0x045F {
-            eprintln!("Stack underflow! SP={:#04X}", self.sp);
-            self.sp = 0x0000;
-        }
-        ret
+        Ok(ret)
     }
 }
 
