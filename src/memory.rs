@@ -197,8 +197,8 @@ impl ATmemory {
 
     fn fetch(&self) -> u16 {
         let mut flash_bytes = [0u8; 2];
-        let range_s: usize = (self.pc).into();
-        let range_e: usize = (self.pc + 2).into();
+        let range_s: usize = (self.pc * 2).into();
+        let range_e: usize = ((self.pc * 2) + 2).into();
         let mut result: u16;
         flash_bytes[0..2].copy_from_slice(&self.flash[range_s..range_e]);
         result = flash_bytes[1] as u16;
