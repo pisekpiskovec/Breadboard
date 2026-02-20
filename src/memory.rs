@@ -329,15 +329,13 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::RCALL { offset } => {
-                let future_pc = self.pc + 2;
+                let future_pc = self.pc + 1;
                 let st_h = (future_pc >> 8) as u8;
                 let st_l = (future_pc & 0x00FF) as u8;
                 self.push_stack(st_l)?;
                 self.push_stack(st_h)?;
 
-                let pc_in_words = (self.pc / 2) as i32;
-                let new_pc_in_words = pc_in_words + offset as i32 + 1;
-                self.pc = (new_pc_in_words * 2) as u16;
+                self.pc = (self.pc as i32 + offset as i32 + 1) as u16;
                 Ok(())
             }
             Instruction::RET => {
@@ -358,9 +356,7 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::RJMP { offset } => {
-                let pc_in_words = (self.pc / 2) as i32;
-                let new_pc_in_words = pc_in_words + offset as i32 + 1;
-                self.pc = (new_pc_in_words * 2) as u16;
+                self.pc = (self.pc as i32 + offset as i32 + 1) as u16;
                 Ok(())
             }
             Instruction::SEC => {
