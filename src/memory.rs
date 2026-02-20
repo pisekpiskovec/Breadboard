@@ -286,7 +286,7 @@ impl ATmemory {
                 // N - Negative flag
                 self.update_flag(0b00000100, n);
                 // Z - Zero flag
-                self.update_flag(0b00000010, self.registers[dest as usize] == 0);
+                self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
                 // C - Carry flag
                 self.update_flag(0b00000001, (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0);
 
