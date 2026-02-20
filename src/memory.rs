@@ -3,19 +3,16 @@ use std::fs::read_to_string;
 
 #[derive(Debug)]
 pub(crate) struct ATmemory {
-    registers: [u8; 32], // 32 x 8 General Purpose Working Registers
-    sreg: u8,            // Status register
-    pc: u16,             // Program Counter register
-    sp: u16,             // Stack Pointer register
-    flash: [u8; 16384],  // 16K Bytes of In-System Self-Programmable Flash
-    sram: [u8; 1024],    // 1K Byte Internal SRAM
-    memory: [u8; 1120],  // EEPROM
+    sreg: u8,           // Status register
+    pc: u16,            // Program Counter register
+    sp: u16,            // Stack Pointer register
+    flash: [u8; 16384], // 16K Bytes of In-System Self-Programmable Flash
+    memory: [u8; 1120], // EEPROM
 }
 
 struct HexRecord {
     address: u16,
     data: Vec<u8>,
-    byte_count: u8,
 }
 
 #[derive(Debug)]
@@ -76,16 +73,10 @@ fn parse_hex_line(line: &str) -> Result<Option<HexRecord>, String> {
 
     match record_type {
         0x00 => {
-            // Data record
-            Ok(Some(HexRecord {
-                address,
-                data,
-                byte_count,
-            }))
+            Ok(Some(HexRecord { address, data })) // Data record
         }
         0x01 => {
-            // End of file
-            Ok(None)
+            Ok(None) // End of file
         }
         _ => Err(format!("Unsuported record type: {:02X}", record_type)),
     }
@@ -101,9 +92,6 @@ fn hex_byte(s: &str) -> Result<u8, String> {
 }
 
 impl ATmemory {
-    pub fn registers(&self) -> &[u8; 32] {
-        &self.registers
-    }
     pub fn sreg(&self) -> u8 {
         self.sreg
     }
@@ -116,21 +104,16 @@ impl ATmemory {
     pub fn flash(&self) -> &[u8; 16384] {
         &self.flash
     }
-    pub fn sram(&self) -> &[u8; 1024] {
-        &self.sram
-    }
     pub fn memory(&self) -> &[u8; 1120] {
         &self.memory
     }
 
     pub fn init() -> Self {
         Self {
-            registers: [0; 32],
             sreg: 0,
             pc: 0,
             sp: 0x45F,
             flash: [0; 16384],
-            sram: [0; 1024],
             memory: [0; 1120],
         }
     }
