@@ -48,7 +48,7 @@ fn tst_rcall() {
         cpu.step().ok();
     }
     assert_eq!(
-        (cpu.registers()[16], cpu.sram()[0x3FE], cpu.pc()),
+        (cpu.registers()[16], cpu.sram()[0x3FF], cpu.pc()),
         (19, 0x06, 0x0006)
     )
 }
