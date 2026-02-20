@@ -197,8 +197,8 @@ impl ATmemory {
 
     fn fetch(&self) -> u16 {
         let mut flash_bytes = [0u8; 2];
-        let range_s: usize = (self.pc).into();
-        let range_e: usize = (self.pc + 2).into();
+        let range_s: usize = (self.pc * 2).into();
+        let range_e: usize = ((self.pc * 2) + 2).into();
         let mut result: u16;
         flash_bytes[0..2].copy_from_slice(&self.flash[range_s..range_e]);
         result = flash_bytes[1] as u16;
@@ -273,12 +273,12 @@ impl ATmemory {
                 // C - Carry flag
                 self.update_flag(0b00000001, (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0);
 
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::CLC => {
                 self.clear_flag(0b00000001);
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::DEC { reg } => {
@@ -297,7 +297,7 @@ impl ATmemory {
                 // Z - Zero flag
                 self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
 
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::INC { reg } => {
@@ -316,28 +316,26 @@ impl ATmemory {
                 // Z - Zero flag
                 self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
 
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::LDI { dest, value } => {
                 self.write_memory(dest as u16, value);
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::NOP => {
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::RCALL { offset } => {
-                let future_pc = self.pc + 2;
+                let future_pc = self.pc + 1;
                 let st_h = (future_pc >> 8) as u8;
                 let st_l = (future_pc & 0x00FF) as u8;
                 self.push_stack(st_l)?;
                 self.push_stack(st_h)?;
 
-                let pc_in_words = (self.pc / 2) as i32;
-                let new_pc_in_words = pc_in_words + offset as i32 + 1;
-                self.pc = (new_pc_in_words * 2) as u16;
+                self.pc = (self.pc as i32 + offset as i32 + 1) as u16;
                 Ok(())
             }
             Instruction::RET => {
@@ -358,14 +356,12 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::RJMP { offset } => {
-                let pc_in_words = (self.pc / 2) as i32;
-                let new_pc_in_words = pc_in_words + offset as i32 + 1;
-                self.pc = (new_pc_in_words * 2) as u16;
+                self.pc = (self.pc as i32 + offset as i32 + 1) as u16;
                 Ok(())
             }
             Instruction::SEC => {
                 self.set_flag(0b00000001);
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             Instruction::SUB { dest, src } => {
@@ -398,7 +394,7 @@ impl ATmemory {
                 // C - Carry flag
                 self.update_flag(0b00000001, (!rd7 & rr7 | rr7 & r7 | r7 & !rd7) != 0);
 
-                self.pc += 2;
+                self.pc += 1;
                 Ok(())
             }
             _ => Err(String::from("Unable to execute instruction")),

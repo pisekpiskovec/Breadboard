@@ -63,7 +63,7 @@ impl UInterface {
 
         for seg in addr..addr + self.memory_bytes_per_row {
             let seg_byte =
-                if usize::from(self.cpu.pc()) == seg || usize::from(self.cpu.pc() + 1) == seg {
+                if usize::from(self.cpu.pc() * 2) == seg || usize::from((self.cpu.pc() * 2) + 1) == seg {
                     text!(" {:02X}", self.cpu.flash()[seg]).style(text::primary)
                 } else {
                     text!(" {:02X}", self.cpu.flash()[seg])
@@ -75,7 +75,7 @@ impl UInterface {
 
         for seg in addr..addr + self.memory_bytes_per_row {
             let seg_char =
-                if usize::from(self.cpu.pc()) == seg || usize::from(self.cpu.pc() + 1) == seg {
+                if usize::from(self.cpu.pc() * 2) == seg || usize::from((self.cpu.pc() * 2) + 1) == seg {
                     text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg])).style(text::primary)
                 } else {
                     text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg]))
