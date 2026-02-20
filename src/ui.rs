@@ -176,14 +176,14 @@ impl UInterface {
             match sp == self.cpu.sp() as usize {
                 true => {
                     rows = rows.push(
-                        text!("{:#04X}={:#02X}", sp, self.cpu.sram()[sp])
+                        text!("{:#05X}={:#04X}", sp, self.cpu.sram()[sp])
                             .font(Font::MONOSPACE)
                             .style(text::primary),
                     );
                 }
                 false => {
                     rows = rows.push(
-                        text!("{:#04X}={:#02X}", sp, self.cpu.sram()[sp]).font(Font::MONOSPACE),
+                        text!("{:#05X}={:#04X}", sp, self.cpu.sram()[sp]).font(Font::MONOSPACE),
                     );
                 }
             }
