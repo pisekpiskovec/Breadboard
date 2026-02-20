@@ -6,9 +6,10 @@ pub(crate) struct ATmemory {
     registers: [u8; 32], // 32 x 8 General Purpose Working Registers
     sreg: u8,            // Status register
     pc: u16,             // Program Counter register
-    sp: u16,              // Stack Pointer register
+    sp: u16,             // Stack Pointer register
     flash: [u8; 16384],  // 16K Bytes of In-System Self-Programmable Flash
     sram: [u8; 1024],    // 1K Byte Internal SRAM
+    memory: [u8; 1120]   // EEPROM
 }
 
 struct HexRecord {
@@ -127,6 +128,7 @@ impl ATmemory {
             sp: 0x3FF,
             flash: [0; 16384],
             sram: [0; 1024],
+            memory: [0; 1120]
         }
     }
 
