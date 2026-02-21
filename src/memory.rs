@@ -21,8 +21,11 @@ enum Instruction {
     CLC,                         // Clear Carry Flag
     DEC { reg: u8 },             // Decrement
     INC { reg: u8 },             // Increment
+    JMP { dest: u32 },           // Jump
     LDI { dest: u8, value: u8 }, // Load Immediate
     NOP,                         // No Operation
+    POP { reg: u8 },             // Pop Register from Stack
+    PUSH { reg: u8 },            // Push Register on Stack
     RCALL { offset: i16 },       // Relative Call to Subroutine
     RET,                         // Return from Subroutine
     RETI,                        // Return from Interrupt
@@ -225,6 +228,20 @@ impl ATmemory {
             x if (x & 0xFE0F) == 0x940A => Ok(Instruction::DEC {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
+            x if (x & 0xFE0E) == 0x940C => Ok(Instruction::JMP {
+                dest: {
+                    let part_a = (x >> 3) & 0x3E;
+                    let part_b = x & 1;
+                    let mut flash_bytes = [0u8; 2];
+                    let range_s: usize = ((self.pc * 2) + 2).into();
+                    let range_e: usize = ((self.pc * 2) + 4).into();
+                    flash_bytes[0..2].copy_from_slice(&self.flash[range_s..range_e]);
+                    let part_c = flash_bytes[1] as u16;
+                    let part_d = flash_bytes[0] as u16;
+                    println!("{} {} {} {}", part_a, part_b, part_c, part_d);
+                    ((part_a | part_b) << 8 | part_c << 8 | part_d).into()
+                },
+            }),
             0x9488 => Ok(Instruction::CLC),
             0x9508 => Ok(Instruction::RET),
             0x9518 => Ok(Instruction::RETI),
@@ -317,6 +334,10 @@ impl ATmemory {
                 self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
 
                 self.pc += 1;
+                Ok(())
+            }
+            Instruction::JMP { dest } => {
+                self.pc = dest as u16;
                 Ok(())
             }
             Instruction::LDI { dest, value } => {
@@ -456,14 +477,20 @@ impl ATmemory {
 // 0x9403 = 1001|0100|0000|0011 => mask result
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// (x & 0xF000) == 0xD000
-//  RCALL = 1101|kkkk|kkkk|kkkk
-// 0xF000 = 1111|0000|0000|0000 => mask
-// 0x1800 = 1101|0000|0000|0000 => mask result
+// (x & 0xFE0E) == 0x940C
+//    JMP = 1001|010k|kkkk|110k
+// 0xFE0E = 1111|1110|0000|1110 => mask
+// 0x940C = 1001|0100|0000|1100 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK
 // 0000 1110 KKKK dddd => >>4
 // 0000 0000 1111 0000 => maskH (F0)
 // 0000 0000 0000 1111 => maskL (0F)
+// 0000111111111111
+//
+// 1001 010k kkkk 110k
+// 0000 0000 0000 0001 => maskL (01)
+// 0001 0010 10kk kkk1 => >>3
+// 0000 0000 0011 1110 => maskL (3E)
 // 0000111111111111
