@@ -230,16 +230,14 @@ impl ATmemory {
             }),
             x if (x & 0xFE0E) == 0x940C => Ok(Instruction::JMP {
                 dest: {
-                    let part_a = (x >> 3) & 0x3E;
-                    let part_b = x & 1;
                     let mut flash_bytes = [0u8; 2];
                     let range_s: usize = ((self.pc * 2) + 2).into();
-                    let range_e: usize = ((self.pc * 2) + 4).into();
-                    flash_bytes[0..2].copy_from_slice(&self.flash[range_s..range_e]);
-                    let part_c = flash_bytes[1] as u16;
-                    let part_d = flash_bytes[0] as u16;
-                    println!("{} {} {} {}", part_a, part_b, part_c, part_d);
-                    ((part_a | part_b) << 8 | part_c << 8 | part_d).into()
+                    let range_e: usize = ((self.pc * 2) + 3).into();
+                    flash_bytes[0..=1].copy_from_slice(&self.flash[range_s..=range_e]);
+                    let mut word: u16 = flash_bytes[1] as u16;
+                    word <<= 8;
+                    word |= flash_bytes[0] as u16;
+                    (((((x >> 4) & 0x1F) as u32) << 16) | ((word as u32) << 1) | (x & 1) as u32) / 2
                 },
             }),
             0x9488 => Ok(Instruction::CLC),
