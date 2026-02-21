@@ -222,6 +222,12 @@ impl ATmemory {
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
             0x4A08 => Ok(Instruction::SEC),
+            x if (x & 0xFE0F) == 0x900F => Ok(Instruction::POP {
+                reg: ((x >> 4) & 0x1F) as u8,
+            }),
+            x if (x & 0xFE0F) == 0x920F => Ok(Instruction::PUSH {
+                reg: ((x >> 4) & 0x1F) as u8,
+            }),
             x if (x & 0xFE0F) == 0x9403 => Ok(Instruction::INC {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
@@ -344,6 +350,17 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::NOP => {
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::POP { reg } => {
+                let val = self.pop_stack()?;
+                self.write_memory(reg as u16, val);
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::PUSH { reg } => {
+                let _ = self.push_stack(self.read_memory(reg as u16));
                 self.pc += 1;
                 Ok(())
             }
@@ -475,10 +492,10 @@ impl ATmemory {
 // 0x9403 = 1001|0100|0000|0011 => mask result
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// (x & 0xFE0E) == 0x940C
-//    JMP = 1001|010k|kkkk|110k
-// 0xFE0E = 1111|1110|0000|1110 => mask
-// 0x940C = 1001|0100|0000|1100 => mask result
+// (x & 0xFE0F) == 0x900F
+//    POP = 1001|001d|dddd|1111
+// 0xFE0F = 1111|1110|0000|1111 => mask
+// 0x920F = 1001|0010|0000|1111 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK
