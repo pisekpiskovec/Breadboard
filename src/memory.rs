@@ -18,9 +18,8 @@ struct HexRecord {
 enum Instruction {
     ADD { dest: u8, src: u8 },    // Add without Carry
     AND { dest: u8, src: u8 },    // Logical AND
-    ANDI { dest: u8, value: u8 }, // Logical AND with Immediate
+    ANDI { dest: u8, value: u8 }, // Logical AND with Immediate / Clear Bits in Register
     CBI { dest: u8, bit: u8 },    // Clear Bit in I/O Register
-    CBR,                          // Clear Bits in Register
     CLC,                          // Clear Carry Flag
     CLH,                          // Clear Half Carry Flag
     CLI,                          // Clear Global Interrupt Flag
