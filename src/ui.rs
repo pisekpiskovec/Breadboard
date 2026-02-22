@@ -67,12 +67,13 @@ impl UInterface {
         row = row.push(text!("{:04X}:", addr).font(Font::MONOSPACE));
 
         for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_byte =
-                if usize::from(self.cpu.pc() * 2) == seg || usize::from((self.cpu.pc() * 2) + 1) == seg {
-                    text!(" {:02X}", self.cpu.flash()[seg]).style(text::primary)
-                } else {
-                    text!(" {:02X}", self.cpu.flash()[seg])
-                };
+            let seg_byte = if usize::from(self.cpu.pc() * 2) == seg
+                || usize::from((self.cpu.pc() * 2) + 1) == seg
+            {
+                text!(" {:02X}", self.cpu.flash()[seg]).style(text::primary)
+            } else {
+                text!(" {:02X}", self.cpu.flash()[seg])
+            };
             row = row.push(seg_byte.font(Font::MONOSPACE));
         }
 
@@ -178,7 +179,14 @@ impl UInterface {
     fn render_registers(&self) -> Element<'_, Message> {
         let mut rows = column![].spacing(2);
         for reg in 0..32 {
-            rows = rows.push(text!("R{:02}={:03} | {1:#04X} | {1:#010b}", reg, self.cpu.memory()[reg]).font(Font::MONOSPACE));
+            rows = rows.push(
+                text!(
+                    "R{:02}={}",
+                    reg,
+                    Self::format_value(self.cpu.memory()[reg], self.display_base_registers)
+                )
+                .font(Font::MONOSPACE),
+            );
         }
 
         scrollable(rows.padding(4)).width(Fill).into()
@@ -190,14 +198,23 @@ impl UInterface {
             match sp == self.cpu.sp() as usize {
                 true => {
                     rows = rows.push(
-                        text!("{:#05X}={:#04X}", sp, self.cpu.memory()[sp])
-                            .font(Font::MONOSPACE)
-                            .style(text::primary),
+                        text!(
+                            "{:#05X}={}",
+                            sp,
+                            Self::format_value(self.cpu.memory()[sp], self.display_base_stack)
+                        )
+                        .font(Font::MONOSPACE)
+                        .style(text::primary),
                     );
                 }
                 false => {
                     rows = rows.push(
-                        text!("{:#05X}={:#04X}", sp, self.cpu.memory()[sp]).font(Font::MONOSPACE),
+                        text!(
+                            "{:#05X}={}",
+                            sp,
+                            Self::format_value(self.cpu.memory()[sp], self.display_base_stack)
+                        )
+                        .font(Font::MONOSPACE),
                     );
                 }
             }
@@ -530,5 +547,13 @@ impl UInterface {
             .padding(4),
         );
         container(content).into()
+    }
+
+    fn format_value(value: u8, base: DisplayBase) -> String {
+        match base {
+            DisplayBase::Binary => format!("{:#010b}", value),
+            DisplayBase::Decimal => format!("{}", value),
+            DisplayBase::Hexadecimal => format!("{:#04X}", value),
+        }
     }
 }
