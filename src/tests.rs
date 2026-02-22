@@ -140,3 +140,31 @@ fn tst_or() {
     }
     assert_eq!(cpu.memory()[16], 253)
 }
+
+#[test]
+/// Logical AND with Immediate test
+fn tst_andi() {
+    let mut cpu = ATmemory::init();
+    // ldi r16, 228
+    // andi r16, 29
+    let program: Vec<u8> = vec![0x04, 0xEE, 0x0D, 0x71];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!(cpu.memory()[16], 4)
+}
+
+#[test]
+/// Logical OR with Immediate test
+fn tst_ori() {
+    let mut cpu = ATmemory::init();
+    // ldi r16, 228
+    // ori r16, 29
+    let program: Vec<u8> = vec![0x04, 0xEE, 0x0D, 0x61];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!(cpu.memory()[16], 253)
+}

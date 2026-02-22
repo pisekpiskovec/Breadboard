@@ -246,6 +246,10 @@ impl ATmemory {
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
             0x4A08 => Ok(Instruction::SEC),
+            x if (x & 0xF000) == 0x7000 => Ok(Instruction::ANDI {
+                dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
+                value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
+            }),
             x if (x & 0xFE0F) == 0x900F => Ok(Instruction::POP {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
@@ -326,6 +330,24 @@ impl ATmemory {
                     dest as u16,
                     self.read_memory(dest as u16) & self.read_memory(src as u16),
                 );
+
+                // S - Signed Tests flag
+                self.update_flag(
+                    0b00010000,
+                    (Self::bit(self.read_memory(dest as u16), 7) == 1) ^ false,
+                );
+                // V - Two Complements flag
+                self.update_flag(0b00001000, false);
+                // N - Negative flag
+                self.update_flag(0b00000100, Self::bit(self.read_memory(dest as u16), 7) == 1);
+                // Z - Zero flag
+                self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
+
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::ANDI { dest, value } => {
+                self.write_memory(dest as u16, self.read_memory(dest as u16) & value);
 
                 // S - Signed Tests flag
                 self.update_flag(
@@ -580,9 +602,9 @@ impl ATmemory {
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
 // (x & 0xFE0F) == 0x900F
-//    AND = 0010|00rd|dddd|rrrr
-// 0xFE0F = 1111|1110|0000|1111 => mask
-// 0x920F = 0010|0000|0000|0000 => mask result
+//   ANDI = 0111|KKKK|dddd|KKKK
+// 0xFE0F = 1111|0000|0000|0000 => mask
+// 0x920F = 0111|0000|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK
