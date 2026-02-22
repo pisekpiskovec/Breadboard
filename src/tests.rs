@@ -125,3 +125,18 @@ fn tst_xor() {
     }
     assert_eq!(cpu.memory()[16], 249)
 }
+
+#[test]
+/// Logical OR test
+fn tst_or() {
+    let mut cpu = ATmemory::init();
+    // ldi r16, 228
+    // ldi r17, 29
+    // or r16, r17
+    let program: Vec<u8> = vec![0x04, 0xEE, 0x1D, 0xE1, 0x01, 0x2B];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!(cpu.memory()[16], 253)
+}
