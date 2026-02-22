@@ -95,7 +95,7 @@ fn hex_byte(s: &str) -> Result<u8, String> {
 
 impl ATmemory {
     pub fn sreg(&self) -> u8 {
-        self.sreg
+        self.read_memory(0x5F)
     }
     pub fn pc(&self) -> u16 {
         self.pc
