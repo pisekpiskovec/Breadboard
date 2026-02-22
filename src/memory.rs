@@ -35,6 +35,7 @@ enum Instruction {
     LDI { dest: u8, value: u8 },  // Load Immediate
     NOP,                          // No Operation
     OR { dest: u8, src: u8 },     // Logical OR
+    ORI { dest: u8, value: u8 },    // Logical OR with Immediate
     POP { reg: u8 },              // Pop Register from Stack
     PUSH { reg: u8 },             // Push Register on Stack
     RCALL { offset: i16 },        // Relative Call to Subroutine
@@ -244,6 +245,10 @@ impl ATmemory {
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
             0x4A08 => Ok(Instruction::SEC),
+            x if (x & 0xF000) == 0x6000 => Ok(Instruction::ORI {
+                dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
+                value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
+            }),
             x if (x & 0xF000) == 0x7000 => Ok(Instruction::ANDI {
                 dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
                 value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
@@ -499,6 +504,24 @@ impl ATmemory {
                     dest as u16,
                     self.read_memory(dest as u16) | self.read_memory(src as u16),
                 );
+
+                // S - Signed Tests flag
+                self.update_flag(
+                    0b00010000,
+                    (Self::bit(self.read_memory(dest as u16), 7) == 1) ^ false,
+                );
+                // V - Two Complements flag
+                self.update_flag(0b00001000, false);
+                // N - Negative flag
+                self.update_flag(0b00000100, Self::bit(self.read_memory(dest as u16), 7) == 1);
+                // Z - Zero flag
+                self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
+
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::ORI { dest, value } => {
+                self.write_memory(dest as u16, self.read_memory(dest as u16) | value);
 
                 // S - Signed Tests flag
                 self.update_flag(
