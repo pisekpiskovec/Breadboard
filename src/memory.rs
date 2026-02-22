@@ -3,8 +3,6 @@ use std::fs::read_to_string;
 
 #[derive(Debug)]
 pub(crate) struct ATmemory {
-    #[deprecated]
-    sreg: u8,           // Status register
     pc: u16,            // Program Counter register
     sp: u16,            // Stack Pointer register
     flash: [u8; 16384], // 16K Bytes of In-System Self-Programmable Flash
@@ -97,7 +95,7 @@ fn hex_byte(s: &str) -> Result<u8, String> {
 
 impl ATmemory {
     pub fn sreg(&self) -> u8 {
-        self.sreg
+        self.read_memory(0x5F)
     }
     pub fn pc(&self) -> u16 {
         self.pc
@@ -114,7 +112,6 @@ impl ATmemory {
 
     pub fn init() -> Self {
         Self {
-            sreg: 0,
             pc: 0,
             sp: 0x45F,
             flash: [0; 16384],
@@ -439,11 +436,11 @@ impl ATmemory {
     }
 
     fn set_flag(&mut self, mask: u8) {
-        self.sreg |= mask;
+        self.memory[0x5F] |= mask;
     }
 
     fn clear_flag(&mut self, mask: u8) {
-        self.sreg &= !mask;
+        self.memory[0x5F] &= !mask;
     }
 
     fn update_flag(&mut self, mask: u8, condition: bool) {
