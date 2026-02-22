@@ -112,7 +112,6 @@ impl ATmemory {
 
     pub fn init() -> Self {
         Self {
-            sreg: 0,
             pc: 0,
             sp: 0x45F,
             flash: [0; 16384],
