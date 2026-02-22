@@ -1,11 +1,12 @@
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::path::PathBuf;
+use std::{fmt, fs};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub display: DisplayConfig,
     pub theme: ThemeConfig,
+    pub display_base: DisplayBaseConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,9 +14,34 @@ pub struct DisplayConfig {
     pub memory_bytes_per_row: usize,
     pub memory_bytes_per_column: usize,
 }
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ThemeConfig {
     pub mode: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Copy)]
+pub enum DisplayBase {
+    Binary,
+    Decimal,
+    Hexadecimal,
+}
+
+impl fmt::Display for DisplayBase {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
+impl DisplayBase {
+    /// A list with all the defined bases.
+    pub const ALL: &'static [Self] = &[Self::Binary, Self::Decimal, Self::Hexadecimal];
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DisplayBaseConfig {
+    pub registers: DisplayBase,
+    pub stack: DisplayBase,
 }
 
 impl Default for Config {
@@ -27,6 +53,10 @@ impl Default for Config {
             },
             theme: ThemeConfig {
                 mode: "Dark".to_string(),
+            },
+            display_base: DisplayBaseConfig {
+                registers: DisplayBase::Decimal,
+                stack: DisplayBase::Hexadecimal,
             },
         }
     }
@@ -54,10 +84,9 @@ impl Config {
         }
 
         let toml_string = toml::to_string_pretty(self)
-                .map_err(|e| format!("Failed to seialize config: {}", e))?;
+            .map_err(|e| format!("Failed to seialize config: {}", e))?;
 
-        fs::write(&path, toml_string)
-                .map_err(|e| format!("Failed to write config: {}", e))
+        fs::write(&path, toml_string).map_err(|e| format!("Failed to write config: {}", e))
     }
 
     fn get_config_path() -> Result<PathBuf, String> {
