@@ -274,6 +274,7 @@ impl ATmemory {
                 },
             }),
             0x9488 => Ok(Instruction::CLC),
+            0x94D8 => Ok(Instruction::CLH),
             0x9508 => Ok(Instruction::RET),
             0x9518 => Ok(Instruction::RETI),
             x if (x & 0xFF00) == 0x9800 => Ok(Instruction::CBI {
@@ -377,6 +378,11 @@ impl ATmemory {
             }
             Instruction::CLC => {
                 self.clear_flag(0b00000001);
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::CLH => {
+                self.clear_flag(0b00100000);
                 self.pc += 1;
                 Ok(())
             }
