@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use iced::theme::Mode;
 use iced::widget::{button, column, container, pick_list, row, rule, scrollable, slider, text};
 use iced::Length::Fill;
-use iced::{system, window, Element, Font, Task, Theme};
+use iced::{system, Element, Font, Task, Theme};
 use rfd::FileDialog;
 
 use crate::config::{Config, DisplayBase};
@@ -35,8 +35,6 @@ pub struct UInterface {
 pub enum Message {
     CPUstep,
     CloseSettings,
-    #[deprecated]
-    Exit,
     LoadBinToFlash,
     LoadHexToFlash,
     OpenSettings,
@@ -251,7 +249,6 @@ impl UInterface {
 
     pub fn update(state: &mut UInterface, message: Message) -> Task<Message> {
         match message {
-            Message::Exit => window::latest().and_then(window::close),
             Message::ThemeChanged(mode) => {
                 state.theme = UInterface::mode_to_theme(mode);
                 state.theme_mode = mode;
