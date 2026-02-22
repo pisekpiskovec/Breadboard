@@ -19,7 +19,7 @@ enum Instruction {
     ADD { dest: u8, src: u8 },    // Add without Carry
     AND { dest: u8, src: u8 },    // Logical AND
     ANDI { dest: u8, value: u8 }, // Logical AND with Immediate
-    CBI,                          // Clear Bit in I/O Register
+    CBI { dest: u8, bit: u8 },    // Clear Bit in I/O Register
     CBR,                          // Clear Bits in Register
     CLC,                          // Clear Carry Flag
     CLH,                          // Clear Half Carry Flag
@@ -277,6 +277,10 @@ impl ATmemory {
             0x9488 => Ok(Instruction::CLC),
             0x9508 => Ok(Instruction::RET),
             0x9518 => Ok(Instruction::RETI),
+            x if (x & 0xFF00) == 0x9800 => Ok(Instruction::CBI {
+                dest: ((x >> 3) & 0x1F) as u8,
+                bit: (x & 0x07) as u8,
+            }),
             x if (x & 0xF000) == 0xC000 => Ok(Instruction::RJMP {
                 offset: ((((x & 0xFFF) << 4) as i16) >> 4),
             }),
@@ -362,6 +366,14 @@ impl ATmemory {
                 self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
 
                 self.pc += 1;
+                Ok(())
+            }
+            Instruction::CBI { dest, bit } => {
+                let mask = 1 << bit;
+                self.write_memory(
+                    0x20 + (dest as u16),
+                    self.read_memory(0x20 + (dest as u16)) & !mask,
+                );
                 Ok(())
             }
             Instruction::CLC => {
@@ -602,9 +614,9 @@ impl ATmemory {
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
 // (x & 0xFE0F) == 0x900F
-//   ANDI = 0111|KKKK|dddd|KKKK
-// 0xFE0F = 1111|0000|0000|0000 => mask
-// 0x920F = 0111|0000|0000|0000 => mask result
+//    CBI = 1001|1000|AAAA|Abbb
+// 0xFF00 = 1111|1111|0000|0000 => mask
+// 0x9800 = 1001|1000|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK
