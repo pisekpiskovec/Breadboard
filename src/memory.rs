@@ -24,13 +24,12 @@ enum Instruction {
     CLH,                          // Clear Half Carry Flag
     CLI,                          // Clear Global Interrupt Flag
     CLN,                          // Clear Negative Flag
-    CLR,                          // Clear Register
     CLS,                          // Clear Signed Flag
     CLT,                          // Clear T Flag
     CLV,                          // Clear Overflow Flag
     CLZ,                          // Clear Zero Flag
     DEC { reg: u8 },              // Decrement
-    EOR { dest: u8, src: u8 },    // Exclusive OR
+    EOR { dest: u8, src: u8 },    // Exclusive OR / Clear Register
     INC { reg: u8 },              // Increment
     JMP { dest: u32 },            // Jump
     LDI { dest: u8, value: u8 },  // Load Immediate
