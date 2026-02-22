@@ -374,6 +374,7 @@ impl ATmemory {
                     0x20 + (dest as u16),
                     self.read_memory(0x20 + (dest as u16)) & !mask,
                 );
+                self.pc += 1;
                 Ok(())
             }
             Instruction::CLC => {
