@@ -17,6 +17,7 @@ struct HexRecord {
 #[derive(Debug)]
 enum Instruction {
     ADD { dest: u8, src: u8 },   // Add without Carry
+    AND { dest: u8, src: u8 },   // Logical AND
     CLC,                         // Clear Carry Flag
     DEC { reg: u8 },             // Decrement
     INC { reg: u8 },             // Increment
@@ -219,6 +220,10 @@ impl ATmemory {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
+            x if (x & 0xFC00) == 0x2000 => Ok(Instruction::AND {
+                dest: ((x >> 4) & 0x1F) as u8,
+                src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
+            }),
             0x4A08 => Ok(Instruction::SEC),
             x if (x & 0xFE0F) == 0x900F => Ok(Instruction::POP {
                 reg: ((x >> 4) & 0x1F) as u8,
@@ -291,6 +296,27 @@ impl ATmemory {
                 self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
                 // C - Carry flag
                 self.update_flag(0b00000001, (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0);
+
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::AND { dest, src } => {
+                self.write_memory(
+                    dest as u16,
+                    self.read_memory(dest as u16) & self.read_memory(src as u16),
+                );
+
+                // S - Signed Tests flag
+                self.update_flag(
+                    0b00010000,
+                    (Self::bit(self.read_memory(dest as u16), 7) == 1) ^ false,
+                );
+                // V - Two Complements flag
+                self.update_flag(0b00001000, false);
+                // N - Negative flag
+                self.update_flag(0b00000100, Self::bit(self.read_memory(dest as u16), 7) == 1);
+                // Z - Zero flag
+                self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
 
                 self.pc += 1;
                 Ok(())
@@ -491,9 +517,9 @@ impl ATmemory {
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
 // (x & 0xFE0F) == 0x900F
-//    POP = 1001|001d|dddd|1111
+//    AND = 0010|00rd|dddd|rrrr
 // 0xFE0F = 1111|1110|0000|1111 => mask
-// 0x920F = 1001|0010|0000|1111 => mask result
+// 0x920F = 0010|0000|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK
