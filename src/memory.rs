@@ -274,6 +274,7 @@ impl ATmemory {
             }),
             0x9488 => Ok(Instruction::CLC),
             0x94A8 => Ok(Instruction::CLN),
+            0x94C8 => Ok(Instruction::CLS),
             0x94D8 => Ok(Instruction::CLH),
             0x94F8 => Ok(Instruction::CLI),
             0x9508 => Ok(Instruction::RET),
@@ -395,6 +396,11 @@ impl ATmemory {
             }
             Instruction::CLN => {
                 self.clear_flag(0b00000100);
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::CLS => {
+                self.clear_flag(0b00010000);
                 self.pc += 1;
                 Ok(())
             }
