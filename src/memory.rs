@@ -20,6 +20,7 @@ enum Instruction {
     AND { dest: u8, src: u8 },   // Logical AND
     CLC,                         // Clear Carry Flag
     DEC { reg: u8 },             // Decrement
+    EOR { dest: u8, src: u8 },   // Exclusive OR
     INC { reg: u8 },             // Increment
     JMP { dest: u32 },           // Jump
     LDI { dest: u8, value: u8 }, // Load Immediate
@@ -224,6 +225,10 @@ impl ATmemory {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
+            x if (x & 0xFC00) == 0x2400 => Ok(Instruction::EOR {
+                dest: ((x >> 4) & 0x1F) as u8,
+                src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
+            }),
             0x4A08 => Ok(Instruction::SEC),
             x if (x & 0xFE0F) == 0x900F => Ok(Instruction::POP {
                 reg: ((x >> 4) & 0x1F) as u8,
@@ -341,6 +346,27 @@ impl ATmemory {
                 self.update_flag(0b00000100, r7 == 1);
                 // Z - Zero flag
                 self.update_flag(0b00000010, self.read_memory(reg as u16) == 0);
+
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::EOR { dest, src } => {
+                self.write_memory(
+                    dest as u16,
+                    self.read_memory(dest as u16) ^ self.read_memory(src as u16),
+                );
+
+                // S - Signed Tests flag
+                self.update_flag(
+                    0b00010000,
+                    (Self::bit(self.read_memory(dest as u16), 7) == 1) ^ false,
+                );
+                // V - Two Complements flag
+                self.update_flag(0b00001000, false);
+                // N - Negative flag
+                self.update_flag(0b00000100, Self::bit(self.read_memory(dest as u16), 7) == 1);
+                // Z - Zero flag
+                self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
 
                 self.pc += 1;
                 Ok(())

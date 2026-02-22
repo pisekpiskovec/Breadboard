@@ -95,3 +95,33 @@ fn tst_pop() {
         (24, 24, 0x45F)
     )
 }
+
+#[test]
+/// Logical AND test
+fn tst_and() {
+    let mut cpu = ATmemory::init();
+    // ldi r16, 228
+    // ldi r17, 29
+    // and r16, r17
+    let program: Vec<u8> = vec![0x04, 0xEE, 0x1D, 0xE1, 0x01, 0x23];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!(cpu.memory()[16], 4)
+}
+
+#[test]
+/// Logical EXCLUSIVE OR test
+fn tst_xor() {
+    let mut cpu = ATmemory::init();
+    // ldi r16, 228
+    // ldi r17, 29
+    // eor r16, r17
+    let program: Vec<u8> = vec![0x04, 0xEE, 0x1D, 0xE1, 0x01, 0x27];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!(cpu.memory()[16], 249)
+}
