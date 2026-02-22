@@ -16,24 +16,35 @@ struct HexRecord {
 
 #[derive(Debug)]
 enum Instruction {
-    ADD { dest: u8, src: u8 },   // Add without Carry
-    AND { dest: u8, src: u8 },   // Logical AND
-    CLC,                         // Clear Carry Flag
-    DEC { reg: u8 },             // Decrement
-    EOR { dest: u8, src: u8 },   // Exclusive OR
-    INC { reg: u8 },             // Increment
-    JMP { dest: u32 },           // Jump
-    LDI { dest: u8, value: u8 }, // Load Immediate
-    NOP,                         // No Operation
-    OR { dest: u8, src: u8 },    // Logical OR
-    POP { reg: u8 },             // Pop Register from Stack
-    PUSH { reg: u8 },            // Push Register on Stack
-    RCALL { offset: i16 },       // Relative Call to Subroutine
-    RET,                         // Return from Subroutine
-    RETI,                        // Return from Interrupt
-    RJMP { offset: i16 },        // Relative Jump
-    SEC,                         // Set Carry Flag
-    SUB { dest: u8, src: u8 },   // Subtract without Carry
+    ADD { dest: u8, src: u8 },    // Add without Carry
+    AND { dest: u8, src: u8 },    // Logical AND
+    ANDI { dest: u8, value: u8 }, // Logical AND with Immediate
+    CBI,                          // Clear Bit in I/O Register
+    CBR,                          // Clear Bits in Register
+    CLC,                          // Clear Carry Flag
+    CLH,                          // Clear Half Carry Flag
+    CLI,                          // Clear Global Interrupt Flag
+    CLN,                          // Clear Negative Flag
+    CLR,                          // Clear Register
+    CLS,                          // Clear Signed Flag
+    CLT,                          // Clear T Flag
+    CLV,                          // Clear Overflow Flag
+    CLZ,                          // Clear Zero Flag
+    DEC { reg: u8 },              // Decrement
+    EOR { dest: u8, src: u8 },    // Exclusive OR
+    INC { reg: u8 },              // Increment
+    JMP { dest: u32 },            // Jump
+    LDI { dest: u8, value: u8 },  // Load Immediate
+    NOP,                          // No Operation
+    OR { dest: u8, src: u8 },     // Logical OR
+    POP { reg: u8 },              // Pop Register from Stack
+    PUSH { reg: u8 },             // Push Register on Stack
+    RCALL { offset: i16 },        // Relative Call to Subroutine
+    RET,                          // Return from Subroutine
+    RETI,                         // Return from Interrupt
+    RJMP { offset: i16 },         // Relative Jump
+    SEC,                          // Set Carry Flag
+    SUB { dest: u8, src: u8 },    // Subtract without Carry
 }
 
 impl fmt::Display for Instruction {
