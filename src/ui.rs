@@ -526,7 +526,7 @@ impl UInterface {
                 text("Display registers in:"),
                 pick_list(
                     DisplayBase::ALL,
-                    Some(self.display_base_registers),
+                    Some(self.temp_display_base_registers),
                     Message::SettingsDisplayBaseRegistersChanged
                 )
             ]
@@ -539,7 +539,7 @@ impl UInterface {
                 text("Display stack in:"),
                 pick_list(
                     DisplayBase::ALL,
-                    Some(self.display_base_stack),
+                    Some(self.temp_display_base_stack),
                     Message::SettingsDisplayBaseStackChanged
                 )
             ]
