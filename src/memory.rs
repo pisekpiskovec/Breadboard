@@ -3,8 +3,6 @@ use std::fs::read_to_string;
 
 #[derive(Debug)]
 pub(crate) struct ATmemory {
-    #[deprecated]
-    sreg: u8,           // Status register
     pc: u16,            // Program Counter register
     sp: u16,            // Stack Pointer register
     flash: [u8; 16384], // 16K Bytes of In-System Self-Programmable Flash
