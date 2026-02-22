@@ -164,7 +164,7 @@ impl UInterface {
     fn render_registers(&self) -> Element<'_, Message> {
         let mut rows = column![].spacing(2);
         for reg in 0..32 {
-            rows = rows.push(text!("R{:02}={:03}", reg, self.cpu.memory()[reg]));
+            rows = rows.push(text!("R{:02}={:03} | {1:#04X} | {1:#08b}", reg, self.cpu.memory()[reg]));
         }
 
         scrollable(rows.padding(4)).width(Fill).into()
