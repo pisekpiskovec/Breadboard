@@ -361,7 +361,7 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::PUSH { reg } => {
-                let _ = self.push_stack(self.read_memory(reg as u16));
+                self.push_stack(self.read_memory(reg as u16))?;
                 self.pc += 1;
                 Ok(())
             }
