@@ -437,11 +437,11 @@ impl ATmemory {
     }
 
     fn set_flag(&mut self, mask: u8) {
-        self.sreg |= mask;
+        self.memory[0x5F] |= mask;
     }
 
     fn clear_flag(&mut self, mask: u8) {
-        self.sreg &= !mask;
+        self.memory[0x5F] &= !mask;
     }
 
     fn update_flag(&mut self, mask: u8, condition: bool) {
