@@ -32,6 +32,7 @@ pub struct UInterface {
 #[derive(Debug, Clone)]
 pub enum Message {
     CPUstep,
+    #[deprecated]
     Exit,
     LoadBinToFlash,
     LoadHexToFlash,
