@@ -1,50 +1,54 @@
 use std::path::PathBuf;
 
 use iced::theme::Mode;
-use iced::widget::{button, column, container, row, rule, scrollable, slider, text};
+use iced::widget::{button, column, container, pick_list, row, rule, scrollable, slider, text};
 use iced::Length::Fill;
 use iced::{system, window, Element, Font, Task, Theme};
 use rfd::FileDialog;
 
-use crate::config::Config;
+use crate::config::{Config, DisplayBase};
 use crate::memory::ATmemory;
 
 #[derive(Debug)]
 pub struct UInterface {
     cpu: ATmemory,
     cycle_counter: usize,
+    display_base_registers: DisplayBase,
+    display_base_stack: DisplayBase,
     flash_file: Option<PathBuf>,
-    memory_bytes_per_row: usize,
+    instructions_per_tick: u8,
     memory_bytes_per_column: usize,
+    memory_bytes_per_row: usize,
+    show_settings: bool,
+    temp_display_base_registers: DisplayBase,
+    temp_display_base_stack: DisplayBase,
+    temp_instructions_per_tick: u8,
+    temp_memory_bytes_per_column: usize,
+    temp_memory_bytes_per_row: usize,
+    temp_ticks_per_second: u8,
     theme: Theme,
     theme_mode: Mode,
-    show_settings: bool,
-    instructions_per_tick: u8,
     ticks_per_second: u8,
-
-    // Temp settings value
-    temp_memory_bytes_per_row: usize,
-    temp_memory_bytes_per_column: usize,
-    temp_instructions_per_tick: u8,
-    temp_ticks_per_second: u8,
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
     CPUstep,
+    CloseSettings,
     #[deprecated]
     Exit,
     LoadBinToFlash,
     LoadHexToFlash,
-    Restart,
-    ThemeChanged(Mode),
     OpenSettings,
-    CloseSettings,
-    SettingsRowChanged(usize),
-    SettingsColumnChanged(usize),
-    SettingsInsTickChanged(u8),
-    SettingsTickSecChanged(u8),
+    Restart,
     SaveSettings,
+    SettingsColumnChanged(usize),
+    SettingsDisplayBaseRegistersChanged(DisplayBase),
+    SettingsDisplayBaseStackChanged(DisplayBase),
+    SettingsInsTickChanged(u8),
+    SettingsRowChanged(usize),
+    SettingsTickSecChanged(u8),
+    ThemeChanged(Mode),
 }
 
 impl UInterface {
@@ -75,12 +79,13 @@ impl UInterface {
         row = row.push(text("        ").font(Font::MONOSPACE));
 
         for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_char =
-                if usize::from(self.cpu.pc() * 2) == seg || usize::from((self.cpu.pc() * 2) + 1) == seg {
-                    text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg])).style(text::primary)
-                } else {
-                    text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg]))
-                };
+            let seg_char = if usize::from(self.cpu.pc() * 2) == seg
+                || usize::from((self.cpu.pc() * 2) + 1) == seg
+            {
+                text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg])).style(text::primary)
+            } else {
+                text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg]))
+            };
             row = row.push(seg_char.font(Font::MONOSPACE));
         }
 
@@ -130,6 +135,10 @@ impl UInterface {
             temp_instructions_per_tick: 1,
             temp_ticks_per_second: 1,
             cycle_counter: 0,
+            temp_display_base_registers: DisplayBase::Decimal,
+            display_base_registers: config.display_base.registers,
+            temp_display_base_stack: DisplayBase::Hexadecimal,
+            display_base_stack: config.display_base.stack,
         }
     }
 
@@ -145,6 +154,10 @@ impl UInterface {
                     Mode::Dark => "Dark".to_string(),
                     Mode::None => String::new(),
                 },
+            },
+            display_base: crate::config::DisplayBaseConfig {
+                registers: self.display_base_registers,
+                stack: self.display_base_stack,
             },
         };
         config.save()
@@ -307,6 +320,8 @@ impl UInterface {
                 state.memory_bytes_per_row = state.temp_memory_bytes_per_row;
                 state.instructions_per_tick = state.temp_instructions_per_tick;
                 state.ticks_per_second = state.temp_ticks_per_second;
+                state.display_base_registers = state.temp_display_base_registers;
+                state.display_base_stack = state.temp_display_base_stack;
                 state.show_settings = false;
                 let _ = state.save_config();
                 Task::none()
@@ -317,6 +332,14 @@ impl UInterface {
             }
             Message::SettingsTickSecChanged(val) => {
                 state.temp_ticks_per_second = val;
+                Task::none()
+            }
+            Message::SettingsDisplayBaseRegistersChanged(display_base) => {
+                state.temp_display_base_registers = display_base;
+                Task::none()
+            }
+            Message::SettingsDisplayBaseStackChanged(display_base) => {
+                state.temp_display_base_stack = display_base;
                 Task::none()
             }
         }
@@ -476,6 +499,32 @@ impl UInterface {
                     Message::SettingsTickSecChanged(val as u8)
                 }),
                 text!("{} ticks/second", self.temp_ticks_per_second)
+            ]
+            .spacing(4)
+            .padding(4),
+        );
+
+        content = content.push(
+            row![
+                text("Display registers in:"),
+                pick_list(
+                    DisplayBase::ALL,
+                    Some(self.display_base_registers),
+                    Message::SettingsDisplayBaseRegistersChanged
+                )
+            ]
+            .spacing(4)
+            .padding(4),
+        );
+
+        content = content.push(
+            row![
+                text("Display stack in:"),
+                pick_list(
+                    DisplayBase::ALL,
+                    Some(self.display_base_stack),
+                    Message::SettingsDisplayBaseStackChanged
+                )
             ]
             .spacing(4)
             .padding(4),
