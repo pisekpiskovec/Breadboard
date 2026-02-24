@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use iced::theme::Mode;
 use iced::widget::{button, column, container, pick_list, row, rule, scrollable, slider, text};
@@ -27,6 +28,7 @@ pub struct UInterface {
     temp_memory_bytes_per_row: usize,
     theme: Theme,
     theme_mode: Mode,
+    run_active: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -37,6 +39,8 @@ pub enum Message {
     LoadHexToFlash,
     OpenSettings,
     Restart,
+    RunTick,
+    RunToggle,
     SaveSettings,
     SettingsColumnChanged(usize),
     SettingsDisplayBaseRegistersChanged(DisplayBase),
@@ -133,6 +137,7 @@ impl UInterface {
             display_base_registers: config.display_base.registers,
             temp_display_base_stack: DisplayBase::Hexadecimal,
             display_base_stack: config.display_base.stack,
+            run_active: false,
         }
     }
 
@@ -231,7 +236,16 @@ impl UInterface {
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
-        system::theme_changes().map(Message::ThemeChanged)
+        let theme_sub = system::theme_changes().map(Message::ThemeChanged);
+
+        if self.run_active {
+            let interval_ms: u64 = (1000.0 / self.instructions_per_second as f64) as u64;
+            let timer_sub =
+                iced::time::every(Duration::from_millis(interval_ms)).map(|_| Message::RunTick);
+            iced::Subscription::batch(vec![theme_sub, timer_sub])
+        } else {
+            theme_sub
+        }
     }
 
     pub fn theme(&self) -> Theme {
@@ -300,7 +314,11 @@ impl UInterface {
                 Task::none()
             }
             Message::CPUstep => {
-                let _ = state.cpu.step();
+                state.run_active = false;
+                match state.cpu.step() {
+                    Ok(it) => it,
+                    Err(err) => eprintln!("Execution error: {}", err),
+                };
                 state.cycle_counter += 1;
                 Task::none()
             }
@@ -346,6 +364,20 @@ impl UInterface {
                 state.temp_display_base_stack = display_base;
                 Task::none()
             }
+            Message::RunTick => {
+                if let Err(e) = state.cpu.step() {
+                    state.run_active = false;
+                    eprintln!("Execution error: {}", e);
+                    return Task::none();
+                }
+                state.cycle_counter += 1;
+                Task::none()
+            }
+            Message::RunToggle => {
+                state.run_active = !state.run_active;
+                // println!("Toggled: {}", state.run_active);
+                Task::none()
+            }
         }
     }
 
@@ -383,6 +415,16 @@ impl UInterface {
                 button(text("Step")).on_press(Message::CPUstep)
             } else {
                 button(text("Step"))
+            },
+            if self.flash_file.is_some() {
+                match self.run_active {
+                    true => button(text("Disable Auto Run"))
+                        .style(button::secondary)
+                        .on_press(Message::RunToggle),
+                    false => button(text("Enable Auto Run")).on_press(Message::RunToggle),
+                }
+            } else {
+                button(text("Auto Run"))
             }
         ]
         .spacing(8)
@@ -396,7 +438,8 @@ impl UInterface {
                     text!("Program Counter | {:#06X}", self.cpu.pc()),
                     text!("Stack Pointer | {:#04X}", self.cpu.sp()),
                     text!("Cycle Counter | {:06}", self.cycle_counter),
-                    Self::render_sreg(self)
+                    text!("Frequency | {:02} Hz", self.instructions_per_second),
+                    Self::render_sreg(self),
                 ]
                 .padding(4)
             )
@@ -486,9 +529,9 @@ impl UInterface {
 
         content = content.push(
             row![
-                text("Instructions per Tick:"),
+                text("CPU frequency:"),
                 slider(
-                    1.0..=64.0,
+                    1.0..=10.0,
                     self.temp_instructions_per_second as f64,
                     |val| { Message::SettingsInsSecChanged(val as u32) }
                 ),
