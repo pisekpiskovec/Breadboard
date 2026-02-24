@@ -264,6 +264,7 @@ impl UInterface {
                 Task::none()
             }
             Message::LoadBinToFlash => {
+                state.run_active = false;
                 state.cpu = ATmemory::init();
                 state.cycle_counter = 0;
                 state.flash_file = None;
@@ -286,6 +287,7 @@ impl UInterface {
                 Task::none()
             }
             Message::LoadHexToFlash => {
+                state.run_active = false;
                 state.cpu = ATmemory::init();
                 state.cycle_counter = 0;
                 state.flash_file = None;
@@ -308,6 +310,7 @@ impl UInterface {
                 Task::none()
             }
             Message::Restart => {
+                state.run_active = false;
                 state.cpu = ATmemory::init();
                 state.cycle_counter = 0;
                 state.flash_file = None;
@@ -323,6 +326,7 @@ impl UInterface {
                 Task::none()
             }
             Message::OpenSettings => {
+                state.run_active = false;
                 state.temp_memory_bytes_per_column = state.memory_bytes_per_column;
                 state.temp_memory_bytes_per_row = state.memory_bytes_per_row;
                 state.show_settings = true;
@@ -375,7 +379,6 @@ impl UInterface {
             }
             Message::RunToggle => {
                 state.run_active = !state.run_active;
-                // println!("Toggled: {}", state.run_active);
                 Task::none()
             }
         }
