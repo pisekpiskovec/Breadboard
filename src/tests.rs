@@ -168,3 +168,23 @@ fn tst_ori() {
     }
     assert_eq!(cpu.memory()[16], 253)
 }
+
+#[test]
+/// 16-bit add
+fn tst_adc() {
+    let mut cpu = ATmemory::init();
+    // ldi r16, 0x34
+    // ldi r17, 0x12
+    // ldi r18, 0xCD
+    // ldi r19, 0xAB
+    // add r16, r18
+    // adc r17, r19
+    let program: Vec<u8> = vec![
+        0x04, 0xE3, 0x12, 0xE1, 0x2D, 0xEC, 0x3B, 0xEA, 0x02, 0x0F, 0x13, 0x1F,
+    ];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!((cpu.memory()[16], cpu.memory()[17]), (0x01, 0xBE))
+}
