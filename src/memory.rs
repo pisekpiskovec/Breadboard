@@ -16,9 +16,12 @@ struct HexRecord {
 
 #[derive(Debug)]
 enum Instruction {
+    ADC { dest: u8, src: u8 },    // Add with Carry
     ADD { dest: u8, src: u8 },    // Add without Carry
+    ADIW { dest: u8, value: u8 }, // Add Immediate to Word
     AND { dest: u8, src: u8 },    // Logical AND
     ANDI { dest: u8, value: u8 }, // Logical AND with Immediate / Clear Bits in Register
+    ASR { dest: u8 },             // Arithmetic Shift Right
     CBI { dest: u8, bit: u8 },    // Clear Bit in I/O Register
     CLC,                          // Clear Carry Flag
     CLH,                          // Clear Half Carry Flag
@@ -35,7 +38,7 @@ enum Instruction {
     LDI { dest: u8, value: u8 },  // Load Immediate
     NOP,                          // No Operation
     OR { dest: u8, src: u8 },     // Logical OR
-    ORI { dest: u8, value: u8 },    // Logical OR with Immediate
+    ORI { dest: u8, value: u8 },  // Logical OR with Immediate
     POP { reg: u8 },              // Pop Register from Stack
     PUSH { reg: u8 },             // Push Register on Stack
     RCALL { offset: i16 },        // Relative Call to Subroutine
