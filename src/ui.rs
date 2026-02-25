@@ -21,6 +21,7 @@ pub struct UInterface {
     memory_bytes_per_column: usize,
     memory_bytes_per_row: usize,
     show_settings: bool,
+    status_message: Option<String>,
     temp_display_base_registers: DisplayBase,
     temp_display_base_stack: DisplayBase,
     temp_instructions_per_second: u32,
@@ -138,6 +139,7 @@ impl UInterface {
             temp_display_base_stack: DisplayBase::Hexadecimal,
             display_base_stack: config.display_base.stack,
             run_active: false,
+            status_message: None,
         }
     }
 
@@ -273,17 +275,20 @@ impl UInterface {
                     .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
                     .set_title("Open binary file")
                     .pick_file();
-                state.flash_file = file.clone();
 
-                if let Some(path) = file {
+                if let Some(path) = file.clone() {
                     if let Some(path_str) = path.to_str() {
                         let _ = state.cpu.load_bin(path_str);
                     } else {
-                        eprintln!("Error: Path is not valid UTF-8.");
+                        state.status_message = Some("Error: Path is not valid UTF-8.".to_string());
+                        return Task::none();
                     }
                 } else {
-                    eprintln!("Error: No file selected.");
+                    state.status_message = Some("Error: No file selected.".to_string());
+                    return Task::none();
                 }
+                state.flash_file = file.clone();
+                state.status_message = Some(format!("Loaded {}", state.flash_file.clone().unwrap().as_os_str().display()));
                 Task::none()
             }
             Message::LoadHexToFlash => {
@@ -296,17 +301,21 @@ impl UInterface {
                     .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
                     .set_title("Open hex file")
                     .pick_file();
-                state.flash_file = file.clone();
 
-                if let Some(path) = file {
+                if let Some(path) = file.clone() {
                     if let Some(path_str) = path.to_str() {
                         let _ = state.cpu.load_hex(path_str);
                     } else {
-                        eprintln!("Error: Path is not valid UTF-8.");
+                        state.status_message = Some("Error: Path is not valid UTF-8.".to_string());
+                        return Task::none();
                     }
                 } else {
-                    eprintln!("Error: No file selected.");
+                    state.status_message = Some("Error: No file selected.".to_string());
+                    return Task::none();
                 }
+
+                state.flash_file = file.clone();
+                state.status_message = Some(format!("Loaded {}", state.flash_file.clone().unwrap().as_os_str().display()));
                 Task::none()
             }
             Message::Restart => {
@@ -318,9 +327,8 @@ impl UInterface {
             }
             Message::CPUstep => {
                 state.run_active = false;
-                match state.cpu.step() {
-                    Ok(it) => it,
-                    Err(err) => eprintln!("Execution error: {}", err),
+                if let Err(e) = state.cpu.step() {
+                    state.status_message = Some(format!("Execution error: {}", e));
                 };
                 state.cycle_counter += 1;
                 Task::none()
@@ -371,7 +379,7 @@ impl UInterface {
             Message::RunTick => {
                 if let Err(e) = state.cpu.step() {
                     state.run_active = false;
-                    eprintln!("Execution error: {}", e);
+                    state.status_message = Some(format!("Execution error: {}", e));
                     return Task::none();
                 }
                 state.cycle_counter += 1;
@@ -478,10 +486,8 @@ impl UInterface {
         content = content.push(rule::horizontal(2));
 
         let mut status_bar = row![];
-        if let Some(path) = self.flash_file.as_ref() {
-            if let Some(path_str) = path.to_str() {
-                status_bar = status_bar.push(text(path_str).width(Fill));
-            }
+        if let Some(status) = self.status_message.as_ref() {
+            status_bar = status_bar.push(text(status).width(Fill));
         } else {
             status_bar = status_bar.push(text("").width(Fill));
         }
