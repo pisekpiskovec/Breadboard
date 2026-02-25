@@ -269,6 +269,7 @@ impl ATmemory {
             x if (x & 0xFE0F) == 0x9403 => Ok(Instruction::INC {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
+            x if (x & 0xFE0F) == 0x9405 => Ok(Instruction::ASR { dest: (0x10 | ((x >> 4) & 0x0F)) as u8 }),
             x if (x & 0xFE0F) == 0x940A => Ok(Instruction::DEC {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
@@ -319,7 +320,6 @@ impl ATmemory {
                 let rd7 = Self::bit(self.read_memory(dest as u16), 7);
                 let rr7 = Self::bit(self.read_memory(src as u16), 7);
                 let c_bit = Self::bit(self.sreg(), 0);
-                println!("{}", c_bit);
 
                 self.write_memory(
                     dest as u16,
@@ -416,6 +416,27 @@ impl ATmemory {
                 self.update_flag(0b00000100, Self::bit(self.read_memory(dest as u16), 7) == 1);
                 // Z - Zero flag
                 self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
+
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::ASR { dest } => {
+                let rd0 = Self::bit(self.read_memory(dest as u16), 0);
+                let rd7 = Self::bit(self.read_memory(dest as u16), 7);
+                let r = self.read_memory(dest as u16) >> 1;
+                let r = r | (rd7 << 7);
+                self.write_memory(dest as u16, r);
+                
+                // S - Signed Tests flag
+                self.update_flag(0b00010000, (rd7) ^ (rd7 ^ rd0) == 1);
+                // V - Two Complements flag
+                self.update_flag(0b00001000, rd7 ^ rd0 == 1);
+                // N - Negative flag
+                self.update_flag(0b00000100, rd7 == 1);
+                // Z - Zero flag
+                self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
+                // C - Carry flag
+                self.update_flag(0b00000010, rd0 == 1);
 
                 self.pc += 1;
                 Ok(())
@@ -719,9 +740,9 @@ impl ATmemory {
 // 0x9403 = 1001|0100|0000|0011 => mask result
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// (x & 0xFE0F) == 0x900F
-//    CBI = 1001|1000|AAAA|Abbb
-// 0xFF00 = 1111|1111|0000|0000 => mask
+// (x & 0xFE0F) == 0x9405
+//    ASR = 1001|010d|dddd|0101
+// 0xFE0F = 1111|1110|0000|1111 => mask
 // 0x9800 = 1001|1000|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
