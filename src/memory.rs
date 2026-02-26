@@ -295,6 +295,10 @@ impl ATmemory {
             0x94F8 => Ok(Instruction::CLI),
             0x9508 => Ok(Instruction::RET),
             0x9518 => Ok(Instruction::RETI),
+            x if (x & 0xFF00) == 0x9600 => Ok(Instruction::ADIW {
+                dest: 24 + (((x >> 4) & 0x03) * 2) as u8,
+                value: (((x >> 2) & 0x30) | x & 0x0F) as u8
+            }),
             x if (x & 0xFF00) == 0x9800 => Ok(Instruction::CBI {
                 dest: ((x >> 3) & 0x1F) as u8,
                 bit: (x & 0x07) as u8,
@@ -377,6 +381,32 @@ impl ATmemory {
                 self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
                 // C - Carry flag
                 self.update_flag(0b00000001, (rd7 & rr7 | rr7 & !r7 | !r7 & rd7) != 0);
+
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::ADIW { dest, value }  => {
+                let rdh7 = Self::bit(self.read_memory((dest + 1) as u16), 7);
+
+                let word: u16 = (self.read_memory((dest + 1) as u16) as u16) << 8
+                                | self.read_memory(dest as u16) as u16;
+                let word = word.wrapping_add(value as u16);
+
+                let r15 = Self::bit((word >> 8) as u8, 7);
+
+                self.write_memory(dest as u16, (word & 0x00FF) as u8);
+                self.write_memory((dest + 1) as u16, (word >> 8) as u8);
+
+                // S - Signed Tests flag
+                self.update_flag(0b00010000, (r15 == 1) ^ ((r15 & !rdh7) == 1));
+                // V - Two Complements flag
+                self.update_flag(0b00001000, (r15 & !rdh7) == 1);
+                // N - Negative flag
+                self.update_flag(0b00000100, r15 == 1);
+                // Z - Zero flag
+                self.update_flag(0b00000010, word == 0);
+                // C - Carry flag
+                self.update_flag(0b00000001, (!r15 & rdh7) == 1);
 
                 self.pc += 1;
                 Ok(())
