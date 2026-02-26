@@ -272,7 +272,7 @@ impl UInterface {
                 state.cycle_counter = 0;
                 state.flash_file = None;
                 let file = FileDialog::new()
-                    .add_filter("Binary file", &["bin", "obj"])
+                    .add_filter("Binary file", &["bin"])
                     .set_directory(std::env::current_dir().unwrap_or(std::env::home_dir().unwrap()))
                     .set_title("Open binary file")
                     .pick_file();
