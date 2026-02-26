@@ -296,6 +296,18 @@ impl ATmemory {
                     (((((x >> 4) & 0x1F) as u32) << 16) | ((word as u32) << 1) | (x & 1) as u32) / 2
                 },
             }),
+            x if (x & 0xFE0E) == 0x940E => Ok(Instruction::CALL {
+                dest: {
+                    let mut flash_bytes = [0u8; 2];
+                    let range_s: usize = ((self.pc * 2) + 2).into();
+                    let range_e: usize = ((self.pc * 2) + 3).into();
+                    flash_bytes[0..=1].copy_from_slice(&self.flash[range_s..=range_e]);
+                    let mut word: u16 = flash_bytes[1] as u16;
+                    word <<= 8;
+                    word |= flash_bytes[0] as u16;
+                    (((((x >> 4) & 0x1F) as u32) << 16) | ((word as u32) << 1) | (x & 1) as u32) / 2
+                },
+            }),
             0x9488 => Ok(Instruction::CLC),
             0x9498 => Ok(Instruction::CLZ),
             0x94A8 => Ok(Instruction::CLN),
@@ -481,6 +493,16 @@ impl ATmemory {
                 self.update_flag(0b00000010, rd0 == 1);
 
                 self.pc += 1;
+                Ok(())
+            }
+            Instruction::CALL { dest } => {
+                let future_pc = self.pc + 2;
+                let st_h = (future_pc >> 8) as u8;
+                let st_l = (future_pc & 0x00FF) as u8;
+                self.push_stack(st_l)?;
+                self.push_stack(st_h)?;
+
+                self.pc = dest as u16;
                 Ok(())
             }
             Instruction::CBI { dest, bit } => {
