@@ -260,6 +260,10 @@ impl ATmemory {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
+            x if (x & 0xFC00) == 0x2C00 => Ok(Instruction::MOV {
+                dest: ((x >> 4) & 0x1F) as u8,
+                src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
+            }),
             0x4A08 => Ok(Instruction::SEC),
             x if (x & 0xF000) == 0x6000 => Ok(Instruction::ORI {
                 dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
@@ -622,6 +626,11 @@ impl ATmemory {
                 self.pc += 1;
                 Ok(())
             }
+            Instruction::MOV { dest, src } => {
+                self.write_memory(dest as u16, self.read_memory(src as u16));
+                self.pc += 1;
+                Ok(())
+            }
             Instruction::NOP => {
                 self.pc += 1;
                 Ok(())
@@ -804,10 +813,10 @@ impl ATmemory {
 // 0x9403 = 1001|0100|0000|0011 => mask result
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// (x & 0xFE0F) == 0x9405
-//    ASR = 1001|010d|dddd|0101
-// 0xFE0F = 1111|1110|0000|1111 => mask
-// 0x9800 = 1001|1000|0000|0000 => mask result
+// (x & 0xFC00) == 0x2C00
+//    MOV = 0010|11rd|dddd|rrrr
+// 0xFC00 = 1111|1100|0000|0000 => mask
+// 0x2C00 = 0010|1100|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK
