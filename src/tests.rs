@@ -188,3 +188,31 @@ fn tst_adc() {
     }
     assert_eq!((cpu.memory()[16], cpu.memory()[17]), (0x01, 0xBE))
 }
+
+#[test]
+/// 16-bit add immediate
+fn tst_adiw() {
+    let mut cpu = ATmemory::init();
+    // ldi r24, 255
+    // adiw r25:r24, 1
+    let program: Vec<u8> = vec![0x8F, 0xEF, 0x01, 0x96];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!((cpu.memory()[24], cpu.memory()[25]), (0x00, 0x01))
+}
+
+#[test]
+/// 16-bit add immediate
+fn tst_asr() {
+    let mut cpu = ATmemory::init();
+    // ldi r16, 150
+    // asr r16
+    let program: Vec<u8> = vec![0x06, 0xE9, 0x05, 0x95];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!((cpu.memory()[16], cpu.sreg() & 0x01), (203, 0))
+}
