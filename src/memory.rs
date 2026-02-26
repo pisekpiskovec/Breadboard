@@ -22,6 +22,7 @@ enum Instruction {
     AND { dest: u8, src: u8 },    // Logical AND
     ANDI { dest: u8, value: u8 }, // Logical AND with Immediate / Clear Bits in Register
     ASR { dest: u8 },             // Arithmetic Shift Right
+    CALL { dest: u32 },           // Long Call to a Subroutnie
     CBI { dest: u8, bit: u8 },    // Clear Bit in I/O Register
     CLC,                          // Clear Carry Flag
     CLH,                          // Clear Half Carry Flag
@@ -36,9 +37,11 @@ enum Instruction {
     INC { reg: u8 },              // Increment
     JMP { dest: u32 },            // Jump
     LDI { dest: u8, value: u8 },  // Load Immediate
+    MOV { dest: u8, src: u8 },    // Copy Register
     NOP,                          // No Operation
     OR { dest: u8, src: u8 },     // Logical OR
     ORI { dest: u8, value: u8 },  // Logical OR with Immediate
+    OUT { addr: u16, src: u8 },   // Store Register to I/O Location
     POP { reg: u8 },              // Pop Register from Stack
     PUSH { reg: u8 },             // Push Register on Stack
     RCALL { offset: i16 },        // Relative Call to Subroutine
