@@ -199,6 +199,12 @@ impl ATmemory {
         self.pc = 0;
     }
 
+    pub fn reset(&mut self) {
+        self.pc = 0;
+        self.sp = 0x45F;
+        self.memory = [0; 1120];
+    }
+
     pub fn step(&mut self) -> Result<(), String> {
         let opcode = self.fetch();
         let instruction = self.decode(opcode)?;

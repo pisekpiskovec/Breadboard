@@ -39,6 +39,7 @@ pub enum Message {
     LoadBinToFlash,
     LoadHexToFlash,
     OpenSettings,
+    Reset,
     Restart,
     RunTick,
     RunToggle,
@@ -318,6 +319,12 @@ impl UInterface {
                 state.status_message = Some(format!("Loaded {}", state.flash_file.clone().unwrap().as_os_str().display()));
                 Task::none()
             }
+            Message::Reset => {
+                state.run_active = false;
+                state.cpu.reset();
+                state.cycle_counter = 0;
+                Task::none()
+            }
             Message::Restart => {
                 state.run_active = false;
                 state.cpu = ATmemory::init();
@@ -436,6 +443,11 @@ impl UInterface {
                 }
             } else {
                 button(text("Auto Run"))
+            },
+            if self.flash_file.is_some() {
+                button(text("Reset")).on_press(Message::Reset)
+            } else {
+                button(text("Reset"))
             }
         ]
         .spacing(8)
