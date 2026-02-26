@@ -275,7 +275,9 @@ impl ATmemory {
             x if (x & 0xFE0F) == 0x9403 => Ok(Instruction::INC {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
-            x if (x & 0xFE0F) == 0x9405 => Ok(Instruction::ASR { dest: (0x10 | ((x >> 4) & 0x0F)) as u8 }),
+            x if (x & 0xFE0F) == 0x9405 => Ok(Instruction::ASR {
+                dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
+            }),
             x if (x & 0xFE0F) == 0x940A => Ok(Instruction::DEC {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
@@ -303,7 +305,7 @@ impl ATmemory {
             0x9518 => Ok(Instruction::RETI),
             x if (x & 0xFF00) == 0x9600 => Ok(Instruction::ADIW {
                 dest: 24 + (((x >> 4) & 0x03) * 2) as u8,
-                value: (((x >> 2) & 0x30) | x & 0x0F) as u8
+                value: (((x >> 2) & 0x30) | x & 0x0F) as u8,
             }),
             x if (x & 0xFF00) == 0x9800 => Ok(Instruction::CBI {
                 dest: ((x >> 3) & 0x1F) as u8,
@@ -334,7 +336,8 @@ impl ATmemory {
                 self.write_memory(
                     dest as u16,
                     self.read_memory(dest as u16)
-                        .wrapping_add(self.read_memory(src as u16)).wrapping_add(c_bit)
+                        .wrapping_add(self.read_memory(src as u16))
+                        .wrapping_add(c_bit),
                 );
 
                 let r3 = Self::bit(self.read_memory(dest as u16), 3);
@@ -391,11 +394,11 @@ impl ATmemory {
                 self.pc += 1;
                 Ok(())
             }
-            Instruction::ADIW { dest, value }  => {
+            Instruction::ADIW { dest, value } => {
                 let rdh7 = Self::bit(self.read_memory((dest + 1) as u16), 7);
 
                 let word: u16 = (self.read_memory((dest + 1) as u16) as u16) << 8
-                                | self.read_memory(dest as u16) as u16;
+                    | self.read_memory(dest as u16) as u16;
                 let word = word.wrapping_add(value as u16);
 
                 let r15 = Self::bit((word >> 8) as u8, 7);
@@ -462,7 +465,7 @@ impl ATmemory {
                 let r = self.read_memory(dest as u16) >> 1;
                 let r = r | (rd7 << 7);
                 self.write_memory(dest as u16, r);
-                
+
                 // S - Signed Tests flag
                 self.update_flag(0b00010000, (rd7) ^ (rd7 ^ rd0) == 1);
                 // V - Two Complements flag

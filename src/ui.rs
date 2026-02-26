@@ -289,7 +289,10 @@ impl UInterface {
                     return Task::none();
                 }
                 state.flash_file = file.clone();
-                state.status_message = Some(format!("Loaded {}", state.flash_file.clone().unwrap().as_os_str().display()));
+                state.status_message = Some(format!(
+                    "Loaded {}",
+                    state.flash_file.clone().unwrap().as_os_str().display()
+                ));
                 Task::none()
             }
             Message::LoadHexToFlash => {
@@ -316,7 +319,10 @@ impl UInterface {
                 }
 
                 state.flash_file = file.clone();
-                state.status_message = Some(format!("Loaded {}", state.flash_file.clone().unwrap().as_os_str().display()));
+                state.status_message = Some(format!(
+                    "Loaded {}",
+                    state.flash_file.clone().unwrap().as_os_str().display()
+                ));
                 Task::none()
             }
             Message::Reset => {
