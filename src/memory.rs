@@ -330,6 +330,10 @@ impl ATmemory {
                 dest: ((x >> 3) & 0x1F) as u8,
                 bit: (x & 0x07) as u8,
             }),
+            x if (x & 0xF800) == 0xB800 => Ok(Instruction::OUT {
+                addr: ((x >> 5) & 0x0030) | (x & 0x000F),
+                src: ((x >> 4) & 0x001F) as u8,
+            }),
             x if (x & 0xF000) == 0xC000 => Ok(Instruction::RJMP {
                 offset: ((((x & 0xFFF) << 4) as i16) >> 4),
             }),
@@ -674,6 +678,12 @@ impl ATmemory {
                 self.pc += 1;
                 Ok(())
             }
+            Instruction::OUT { addr, src } => {
+                self.write_memory(32 + addr, self.read_memory(src as u16));
+
+                self.pc += 1;
+                Ok(())
+            }
             Instruction::POP { reg } => {
                 let val = self.pop_stack()?;
                 self.write_memory(reg as u16, val);
@@ -813,10 +823,10 @@ impl ATmemory {
 // 0x9403 = 1001|0100|0000|0011 => mask result
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// (x & 0xFC00) == 0x2C00
-//    MOV = 0010|11rd|dddd|rrrr
-// 0xFC00 = 1111|1100|0000|0000 => mask
-// 0x2C00 = 0010|1100|0000|0000 => mask result
+// (x & 0xF800) == 0xB800
+//    OUT = 1011|1AAr|rrrr|AAAA
+// 0xF800 = 1111|1000|0000|0000 => mask
+// 0xB800 = 1011|1000|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK

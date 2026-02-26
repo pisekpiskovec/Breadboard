@@ -204,7 +204,6 @@ fn tst_adiw() {
 }
 
 #[test]
-/// 16-bit add immediate
 fn tst_asr() {
     let mut cpu = ATmemory::init();
     // ldi r16, 150
@@ -215,4 +214,17 @@ fn tst_asr() {
         cpu.step().ok();
     }
     assert_eq!((cpu.memory()[16], cpu.sreg() & 0x01), (203, 0))
+}
+
+#[test]
+fn tst_out() {
+    let mut cpu = ATmemory::init();
+    // ldi r21, 95
+    // out SPL, r21
+    let program: Vec<u8> = vec![0x5F, 0xE5, 0x5D, 0xBF];
+    cpu.load_flash_from_vec(program.clone()).ok();
+    for _ in 0..(program.len() / 2) {
+        cpu.step().ok();
+    }
+    assert_eq!(cpu.memory()[93], 95)
 }
