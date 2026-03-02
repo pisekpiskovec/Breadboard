@@ -10,7 +10,7 @@ impl ATport {
     pub fn new() -> Self {
         Self {
             tcp_connection: None,
-            }
+        }
     }
 
     pub fn connect(&mut self, addr: &str) -> Result<(), String> {
@@ -22,9 +22,7 @@ impl ATport {
                 self.tcp_connection = Some(stream);
                 Ok(())
             }
-            Err(e) => {
-                Err(format!("Connection failed: {}", e))
-            }
+            Err(e) => Err(format!("Connection failed: {}", e)),
         }
     }
 
@@ -49,5 +47,9 @@ impl ATport {
         } else {
             None
         }
+    }
+
+    pub fn is_connected(&self) -> bool {
+        self.tcp_connection.is_some()
     }
 }
