@@ -48,5 +48,15 @@ impl ATport {
     }
 
     pub fn recive_port_read(&mut self) -> Option<(u8, u8)> {
+        if let Some(ref mut stream) = self.tcp_connection {
+            // Simple protocol: recive 2 bytes [port, value]
+            let mut buf = Vec::new();
+            if stream.read_to_end(&mut buf).is_err() {
+                self.tcp_connection = None;
+            }
+            Some((buf[0], buf[1]))
+        } else {
+            None
+        }
     }
 }
