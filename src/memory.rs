@@ -34,6 +34,7 @@ enum Instruction {
     CLZ,                          // Clear Zero Flag
     DEC { reg: u8 },              // Decrement
     EOR { dest: u8, src: u8 },    // Exclusive OR / Clear Register
+    IN { addr: u16, dest: u8 },   // Load an I/O Location to Register
     INC { reg: u8 },              // Increment
     JMP { dest: u32 },            // Jump
     LDI { dest: u8, value: u8 },  // Load Immediate
@@ -48,6 +49,7 @@ enum Instruction {
     RET,                          // Return from Subroutine
     RETI,                         // Return from Interrupt
     RJMP { offset: i16 },         // Relative Jump
+    SBI { dest: u8, bit: u8 },    // Set Bit in I/O Register
     SEC,                          // Set Carry Flag
     SUB { dest: u8, src: u8 },    // Subtract without Carry
 }
