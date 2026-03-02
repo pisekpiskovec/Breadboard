@@ -8,19 +8,9 @@ pub struct ATport {
 
 impl ATport {
     pub fn new() -> Self {
-        let mut tcp_connection = None;
-        match TcpStream::connect("127.0.0.1:9000") {
-            Ok(stream) => {
-                let _ = stream
-                    .set_nonblocking(true)
-                    .map_err(|e| format!("Failed to set nonblocking: {}", e));
-                tcp_connection = Some(stream).or(None);
+        Self {
+            tcp_connection: None,
             }
-            Err(e) => {
-                eprintln!("Connection failed: {}", e);
-            }
-        }
-        Self { tcp_connection }
     }
 
     pub fn connect(&mut self, addr: &str) -> Result<(), String> {
