@@ -332,6 +332,10 @@ impl ATmemory {
                 dest: ((x >> 3) & 0x1F) as u8,
                 bit: (x & 0x07) as u8,
             }),
+            x if (x & 0xFF00) == 0x9A00 => Ok(Instruction::SBI {
+                dest: ((x >> 3) & 0x1F) as u8,
+                bit: (x & 0x07) as u8,
+            }),
             x if (x & 0xF800) == 0xB800 => Ok(Instruction::OUT {
                 addr: ((x >> 5) & 0x0030) | (x & 0x000F),
                 src: ((x >> 4) & 0x001F) as u8,
@@ -726,6 +730,15 @@ impl ATmemory {
             }
             Instruction::RJMP { offset } => {
                 self.pc = (self.pc as i32 + offset as i32 + 1) as u16;
+                Ok(())
+            }
+            Instruction::SBI { dest, bit } => {
+                let mask = 1 << bit;
+                self.write_memory(
+                    0x20 + (dest as u16),
+                    self.read_memory(0x20 + (dest as u16)) | mask,
+                );
+                self.pc += 1;
                 Ok(())
             }
             Instruction::SEC => {
