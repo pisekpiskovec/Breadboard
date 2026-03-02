@@ -1,5 +1,5 @@
-use std::net::TcpStream;
 use std::io::{Read, Write};
+use std::net::TcpStream;
 
 pub struct ATport {
     tcp_connection: Option<TcpStream>,
@@ -23,7 +23,18 @@ impl ATport {
     }
 
     pub fn connect(&mut self, addr: &str) -> Result<(), String> {
+        match TcpStream::connect(addr) {
+            Ok(stream) => {
+                let _ = stream
+                    .set_nonblocking(true)
+                    .map_err(|e| format!("Failed to set nonblocking: {}", e));
+                self.tcp_connection = Some(stream);
         Ok(())
+    }
+            Err(e) => {
+                Err(format!("Connection failed: {}", e))
+            }
+        }
     }
 
     pub fn send_port_write(&mut self, port: u8, value: u8) {
