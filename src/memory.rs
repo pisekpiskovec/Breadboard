@@ -336,6 +336,10 @@ impl ATmemory {
                 dest: ((x >> 3) & 0x1F) as u8,
                 bit: (x & 0x07) as u8,
             }),
+            x if (x & 0xF800) == 0xB000 => Ok(Instruction::IN {
+                addr: ((x >> 5) & 0x0030) | (x & 0x000F),
+                dest: ((x >> 4) & 0x001F) as u8,
+            }),
             x if (x & 0xF800) == 0xB800 => Ok(Instruction::OUT {
                 addr: ((x >> 5) & 0x0030) | (x & 0x000F),
                 src: ((x >> 4) & 0x001F) as u8,
@@ -604,6 +608,12 @@ impl ATmemory {
                 self.update_flag(0b00000100, Self::bit(self.read_memory(dest as u16), 7) == 1);
                 // Z - Zero flag
                 self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
+
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::IN { addr, dest } => {
+                self.write_memory(dest as u16, self.read_memory(32 + addr));
 
                 self.pc += 1;
                 Ok(())
