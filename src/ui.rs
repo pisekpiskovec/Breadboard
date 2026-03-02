@@ -481,23 +481,34 @@ impl UInterface {
             ]
         ];
 
-        // let right_sidebar = column![
-        //     // text("PortA"),
-        //     // text("PortB"),
-        //     // text("PortC"),
-        //     // text("PortD"),
-        //     // text("Timer0"),
-        //     // text("Timer1"),
-        //     // text("Timer2"),
-        // ]
-        // .padding(2);
+        let right_sidebar = column![
+            text!("PortA | {:08b}", self.cpu.memory()[0x3B]),
+            text!("DDRA | {:08b}", self.cpu.memory()[0x3A]),
+            text!("PinA | {:08b}", self.cpu.memory()[0x39]),
+            rule::horizontal(2),
+            text!("PortB | {:08b}", self.cpu.memory()[0x38]),
+            text!("DDRB | {:08b}", self.cpu.memory()[0x37]),
+            text!("PinB | {:08b}", self.cpu.memory()[0x36]),
+            rule::horizontal(2),
+            text!("PortC | {:08b}", self.cpu.memory()[0x35]),
+            text!("DDRC | {:08b}", self.cpu.memory()[0x34]),
+            text!("PinC | {:08b}", self.cpu.memory()[0x33]),
+            rule::horizontal(2),
+            text!("PortD | {:08b}", self.cpu.memory()[0x32]),
+            text!("DDRD | {:08b}", self.cpu.memory()[0x31]),
+            text!("PinD | {:08b}", self.cpu.memory()[0x30]),
+            // text("Timer0"),
+            // text("Timer1"),
+            // text("Timer2"),
+        ]
+        .padding(2);
 
         let main_view = row![
             left_sidebar,
             rule::vertical(2),
             Self::render_flash_memory(self),
-            // rule::vertical(2),
-            // right_sidebar,
+            rule::vertical(2),
+            right_sidebar,
         ];
 
         content = content.push(main_view);
