@@ -519,7 +519,8 @@ impl UInterface {
         let mut content = column![].spacing(2).padding(4);
 
         let header = row![
-            text("Breadboard").size(36).width(Fill),
+            text("Breadboard").size(36),
+            text(env!("CARGO_PKG_VERSION")).width(Fill),
             button(text("Cancel")).on_press(Message::CloseSettings),
             button(text("Save")).on_press(Message::SaveSettings),
         ]
