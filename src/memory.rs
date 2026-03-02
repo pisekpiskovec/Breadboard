@@ -1,12 +1,15 @@
 use std::fmt::{self};
 use std::fs::read_to_string;
 
+use crate::port::ATport;
+
 #[derive(Debug)]
 pub(crate) struct ATmemory {
     pc: u16,            // Program Counter register
     sp: u16,            // Stack Pointer register
     flash: [u8; 16384], // 16K Bytes of In-System Self-Programmable Flash
     memory: [u8; 1120], // EEPROM
+    port_mgr: ATport,
 }
 
 struct HexRecord {
@@ -130,6 +133,9 @@ impl ATmemory {
     pub fn memory(&self) -> &[u8; 1120] {
         &self.memory
     }
+    pub fn connect_to_hw(&mut self, addr: &str) -> Result<(), String> {
+        self.port_mgr.connect(addr)
+    }
 
     pub fn init() -> Self {
         Self {
@@ -137,6 +143,7 @@ impl ATmemory {
             sp: 0x45F,
             flash: [0; 16384],
             memory: [0; 1120],
+            port_mgr: ATport::new(),
         }
     }
 

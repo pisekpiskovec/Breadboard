@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
+#[derive(Debug)]
 pub struct ATport {
     tcp_connection: Option<TcpStream>,
 }
@@ -29,8 +30,8 @@ impl ATport {
                     .set_nonblocking(true)
                     .map_err(|e| format!("Failed to set nonblocking: {}", e));
                 self.tcp_connection = Some(stream);
-        Ok(())
-    }
+                Ok(())
+            }
             Err(e) => {
                 Err(format!("Connection failed: {}", e))
             }
