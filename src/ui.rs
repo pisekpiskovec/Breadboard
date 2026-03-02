@@ -238,6 +238,17 @@ impl UInterface {
         scrollable(cols).height(Fill).into()
     }
 
+    fn render_bits(label: &str, value: u8) -> Element<'_, Message> {
+        let mut cols = row![text!("{label} | ")].spacing(2);
+        for idx in 0..8 {
+            match ((value << idx) & 0x80) == 128 {
+                true => cols = cols.push(text("▪").style(text::primary)),
+                false => cols = cols.push(text("▪")),
+            }
+        }
+        cols.into()
+    }
+
     pub fn subscription(&self) -> iced::Subscription<Message> {
         let theme_sub = system::theme_changes().map(Message::ThemeChanged);
 
@@ -481,23 +492,34 @@ impl UInterface {
             ]
         ];
 
-        // let right_sidebar = column![
-        //     // text("PortA"),
-        //     // text("PortB"),
-        //     // text("PortC"),
-        //     // text("PortD"),
-        //     // text("Timer0"),
-        //     // text("Timer1"),
-        //     // text("Timer2"),
-        // ]
-        // .padding(2);
+        let right_sidebar = column![
+            Self::render_bits("PortA", self.cpu.memory()[0x3B]),
+            Self::render_bits("DDRA", self.cpu.memory()[0x3A]),
+            Self::render_bits("PinA", self.cpu.memory()[0x39]),
+            rule::horizontal(2),
+            Self::render_bits("PortB", self.cpu.memory()[0x38]),
+            Self::render_bits("DDRB", self.cpu.memory()[0x37]),
+            Self::render_bits("PinB", self.cpu.memory()[0x36]),
+            rule::horizontal(2),
+            Self::render_bits("PortC", self.cpu.memory()[0x35]),
+            Self::render_bits("DDRC", self.cpu.memory()[0x34]),
+            Self::render_bits("PinC", self.cpu.memory()[0x33]),
+            rule::horizontal(2),
+            Self::render_bits("PortD", self.cpu.memory()[0x32]),
+            Self::render_bits("DDRD", self.cpu.memory()[0x31]),
+            Self::render_bits("PinD", self.cpu.memory()[0x30]),
+            // text("Timer0"),
+            // text("Timer1"),
+            // text("Timer2"),
+        ]
+        .padding(2);
 
         let main_view = row![
             left_sidebar,
             rule::vertical(2),
             Self::render_flash_memory(self),
-            // rule::vertical(2),
-            // right_sidebar,
+            rule::vertical(2),
+            right_sidebar,
         ];
 
         content = content.push(main_view);
