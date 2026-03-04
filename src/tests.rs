@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use crate::memory::ATmemory;
+use rand::Rng;
 
 #[test]
 /// Load 255 to r17
@@ -13,15 +14,19 @@ fn tst_ldi() {
 }
 
 #[test]
-/// Adds 16 + 3
 fn tst_add() {
     let mut cpu = ATmemory::init();
-    let program: Vec<u8> = vec![0x00, 0xE1, 0x13, 0xE0, 0x01, 0x0F];
+    let mut rng = rand::thread_rng();
+    let value_r16: u8 = rng.gen_range(0..=255);
+    let value_r17: u8 = rng.gen_range(0..=255);
+    cpu.write_to_register(16, value_r16);
+    cpu.write_to_register(17, value_r17);
+    let program: Vec<u8> = vec![0x01, 0x0F];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!(cpu.memory()[16], 19)
+    assert_eq!(cpu.memory()[16], value_r16.wrapping_add(value_r17))
 }
 
 #[test]
