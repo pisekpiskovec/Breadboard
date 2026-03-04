@@ -217,6 +217,10 @@ impl ATmemory {
         self.memory = [0; 1120];
     }
 
+    pub fn update_io(&mut self) {
+        self.port_mgr.update_io(&mut self.memory).ok();
+    }
+
     pub fn step(&mut self) -> Result<(), String> {
         let opcode = self.fetch();
         let instruction = self.decode(opcode)?;
