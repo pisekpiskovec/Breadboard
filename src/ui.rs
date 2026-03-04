@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::theme::Mode;
-use iced::widget::{button, column, container, pick_list, row, rule, scrollable, slider, text};
+use iced::widget::{button, checkbox, column, container, pick_list, row, rule, scrollable, slider, text};
 use iced::Length::Fill;
 use iced::{system, Element, Font, Task, Theme};
 use rfd::FileDialog;
@@ -20,6 +20,7 @@ pub struct UInterface {
     instructions_per_second: u32,
     memory_bytes_per_column: usize,
     memory_bytes_per_row: usize,
+    show_ascii_in_flash: bool,
     show_settings: bool,
     status_message: Option<String>,
     temp_display_base_registers: DisplayBase,
@@ -27,6 +28,7 @@ pub struct UInterface {
     temp_instructions_per_second: u32,
     temp_memory_bytes_per_column: usize,
     temp_memory_bytes_per_row: usize,
+    temp_show_ascii_in_flash: bool,
     theme: Theme,
     theme_mode: Mode,
     run_active: bool,
@@ -45,6 +47,7 @@ pub enum Message {
     RunToggle,
     SaveSettings,
     SettingsColumnChanged(usize),
+    SettingsASCIIChanged(bool),
     SettingsDisplayBaseRegistersChanged(DisplayBase),
     SettingsDisplayBaseStackChanged(DisplayBase),
     SettingsInsSecChanged(u32),
@@ -78,17 +81,19 @@ impl UInterface {
             row = row.push(seg_byte.font(Font::MONOSPACE));
         }
 
-        row = row.push(text("        ").font(Font::MONOSPACE));
+        if self.show_ascii_in_flash {
+            row = row.push(text("        ").font(Font::MONOSPACE));
 
-        for seg in addr..addr + self.memory_bytes_per_row {
-            let seg_char = if usize::from(self.cpu.pc() * 2) == seg
-                || usize::from((self.cpu.pc() * 2) + 1) == seg
-            {
-                text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg])).style(text::primary)
-            } else {
-                text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg]))
-            };
-            row = row.push(seg_char.font(Font::MONOSPACE));
+            for seg in addr..addr + self.memory_bytes_per_row {
+                let seg_char = if usize::from(self.cpu.pc() * 2) == seg
+                    || usize::from((self.cpu.pc() * 2) + 1) == seg
+                {
+                    text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg])).style(text::primary)
+                } else {
+                    text!("{}", Self::byte_to_ascii(self.cpu.flash()[seg]))
+                };
+                row = row.push(seg_char.font(Font::MONOSPACE));
+            }
         }
 
         row.spacing(2).into()
@@ -129,9 +134,11 @@ impl UInterface {
             flash_file: None,
             memory_bytes_per_row: config.display.memory_bytes_per_row,
             memory_bytes_per_column: config.display.memory_bytes_per_column,
+            show_ascii_in_flash: true,
             show_settings: false,
             temp_memory_bytes_per_row: config.display.memory_bytes_per_row,
             temp_memory_bytes_per_column: config.display.memory_bytes_per_column,
+            temp_show_ascii_in_flash: true,
             instructions_per_second: 1,
             temp_instructions_per_second: 1,
             cycle_counter: 0,
@@ -378,9 +385,14 @@ impl UInterface {
                 state.temp_memory_bytes_per_column = val;
                 Task::none()
             }
+            Message::SettingsASCIIChanged(val) => {
+                state.temp_show_ascii_in_flash = val;
+                Task::none()
+            }
             Message::SaveSettings => {
                 state.memory_bytes_per_column = state.temp_memory_bytes_per_column;
                 state.memory_bytes_per_row = state.temp_memory_bytes_per_row;
+                state.show_ascii_in_flash = state.temp_show_ascii_in_flash;
                 state.instructions_per_second = state.temp_instructions_per_second;
                 state.display_base_registers = state.temp_display_base_registers;
                 state.display_base_stack = state.temp_display_base_stack;
@@ -572,6 +584,16 @@ impl UInterface {
                     |val| { Message::SettingsColumnChanged(val as usize) }
                 ),
                 text!("{}", self.temp_memory_bytes_per_column)
+            ]
+            .spacing(4)
+            .padding(4),
+        );
+
+        content = content.push(
+            row![
+                checkbox(self.temp_show_ascii_in_flash)
+                    .label("Display ASCII characters next to the flash hex dump?")
+                    .on_toggle(Message::SettingsASCIIChanged)
             ]
             .spacing(4)
             .padding(4),
