@@ -144,8 +144,8 @@ impl UInterface {
             display_base_stack: config.display_base.stack,
             run_active: false,
             status_message: None,
-            bridge_address: "127.0.0.1:9000".to_string(),
-            temp_bridge_address: "127.0.0.1:9000".to_string(),
+            bridge_address: config.bridge_address,
+            temp_bridge_address: Config::load().unwrap_or_default().bridge_address,
         }
     }
 
@@ -166,6 +166,7 @@ impl UInterface {
                 registers: self.display_base_registers,
                 stack: self.display_base_stack,
             },
+            bridge_address: self.bridge_address.repeat(0),
         };
         config.save()
     }

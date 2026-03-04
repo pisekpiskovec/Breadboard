@@ -7,6 +7,7 @@ pub struct Config {
     pub display: DisplayConfig,
     pub theme: ThemeConfig,
     pub display_base: DisplayBaseConfig,
+    pub bridge_address: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -58,6 +59,7 @@ impl Default for Config {
                 registers: DisplayBase::Decimal,
                 stack: DisplayBase::Hexadecimal,
             },
+            bridge_address: "127.0.0.1:9000".to_string(),
         }
     }
 }
