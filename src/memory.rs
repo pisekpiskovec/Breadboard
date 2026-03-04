@@ -840,6 +840,12 @@ impl ATmemory {
         self.sp = self.sp.wrapping_add(1);
         Ok(ret)
     }
+
+    pub fn write_to_register(&mut self, addr: u16, value: u8) {
+        if addr < 32 {
+            self.memory[addr as usize] = value;
+        }
+    }
 }
 
 // (x & 0xFE0F) == 0x9403
