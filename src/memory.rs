@@ -222,10 +222,23 @@ impl ATmemory {
     }
 
     pub fn step(&mut self) -> Result<(), String> {
+        self.ports_and_pins();
         let opcode = self.fetch();
         let instruction = self.decode(opcode)?;
         self.execute(instruction)?;
         Ok(())
+    }
+
+    fn ports_and_pins(&mut self) {
+        let pin_addresses = [0x39, 0x36, 0x33, 0x30];
+        for addr in pin_addresses.iter() {
+            let port = self.read_memory(addr + 2);
+            let ddr = self.read_memory(addr + 1);
+            let pin = self.read_memory(*addr);
+            let pin = (port & ddr) | (pin & !ddr);
+            self.write_memory(*addr, pin);
+            self.port_mgr.send_port_write(*addr as u8, pin);
+        }
     }
 
     pub fn get_instruction(&self) -> String {
