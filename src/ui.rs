@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::theme::Mode;
-use iced::widget::{button, column, container, pick_list, row, rule, scrollable, slider, text};
+use iced::widget::{button, column, container, pick_list, row, rule, scrollable, slider, text, text_input};
 use iced::Length::Fill;
 use iced::{system, Element, Font, Task, Theme};
 use rfd::FileDialog;
@@ -30,6 +30,8 @@ pub struct UInterface {
     theme: Theme,
     theme_mode: Mode,
     run_active: bool,
+    bridge_address: String,
+    temp_bridge_address: String,
 }
 
 #[derive(Debug, Clone)]
@@ -49,6 +51,7 @@ pub enum Message {
     SettingsDisplayBaseStackChanged(DisplayBase),
     SettingsInsSecChanged(u32),
     SettingsRowChanged(usize),
+    SettingsBridgeChanged(String),
     ThemeChanged(Mode),
 }
 
@@ -141,6 +144,8 @@ impl UInterface {
             display_base_stack: config.display_base.stack,
             run_active: false,
             status_message: None,
+            bridge_address: "127.0.0.1:9000".to_string(),
+            temp_bridge_address: "127.0.0.1:9000".to_string(),
         }
     }
 
@@ -369,6 +374,7 @@ impl UInterface {
                 state.temp_memory_bytes_per_column = state.memory_bytes_per_column;
                 state.temp_memory_bytes_per_row = state.memory_bytes_per_row;
                 state.show_settings = false;
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
             }
             Message::SettingsRowChanged(val) => {
@@ -385,7 +391,9 @@ impl UInterface {
                 state.instructions_per_second = state.temp_instructions_per_second;
                 state.display_base_registers = state.temp_display_base_registers;
                 state.display_base_stack = state.temp_display_base_stack;
+                state.bridge_address = state.temp_bridge_address.trim().to_string();
                 state.show_settings = false;
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 let _ = state.save_config();
                 Task::none()
             }
@@ -415,6 +423,10 @@ impl UInterface {
                 state.run_active = !state.run_active;
                 Task::none()
             }
+            Message::SettingsBridgeChanged(addr) => {
+                state.temp_bridge_address = addr;
+                Task::none()
+            },
         }
     }
 
@@ -614,6 +626,15 @@ impl UInterface {
                     Some(self.temp_display_base_stack),
                     Message::SettingsDisplayBaseStackChanged
                 )
+            ]
+            .spacing(4)
+            .padding(4),
+        );
+
+        content = content.push(
+            row![
+                text("Hardware bridge address:"),
+                text_input("", &self.bridge_address).on_input(Message::SettingsBridgeChanged)
             ]
             .spacing(4)
             .padding(4),
