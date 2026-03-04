@@ -30,15 +30,19 @@ fn tst_add() {
 }
 
 #[test]
-/// Subtract 5 out of 129
 fn tst_sub() {
     let mut cpu = ATmemory::init();
-    let program: Vec<u8> = vec![0x01, 0xE8, 0x15, 0xE0, 0x01, 0x1B];
+    let mut rng = rand::thread_rng();
+    let value_r16: u8 = rng.gen_range(0..=255);
+    let value_r17: u8 = rng.gen_range(0..=255);
+    cpu.write_to_register(16, value_r16);
+    cpu.write_to_register(17, value_r17);
+    let program: Vec<u8> = vec![0x01, 0x1B];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!(cpu.memory()[16], 124)
+    assert_eq!(cpu.memory()[16], value_r16.wrapping_sub(value_r17))
 }
 
 #[test]
