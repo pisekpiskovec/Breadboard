@@ -109,73 +109,91 @@ fn tst_pop() {
 /// Logical AND test
 fn tst_and() {
     let mut cpu = ATmemory::init();
-    // ldi r16, 228
-    // ldi r17, 29
+    let mut rng = rand::thread_rng();
+    let value_r16: u8 = rng.gen_range(0..=255);
+    let value_r17: u8 = rng.gen_range(0..=255);
+    cpu.write_to_register(16, value_r16);
+    cpu.write_to_register(17, value_r17);
+
     // and r16, r17
-    let program: Vec<u8> = vec![0x04, 0xEE, 0x1D, 0xE1, 0x01, 0x23];
+    let program: Vec<u8> = vec![0x01, 0x23];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!(cpu.memory()[16], 4)
+    assert_eq!(cpu.memory()[16], value_r16 & value_r17)
 }
 
 #[test]
 /// Logical EXCLUSIVE OR test
 fn tst_xor() {
     let mut cpu = ATmemory::init();
-    // ldi r16, 228
-    // ldi r17, 29
+    let mut rng = rand::thread_rng();
+    let value_r16: u8 = rng.gen_range(0..=255);
+    let value_r17: u8 = rng.gen_range(0..=255);
+    cpu.write_to_register(16, value_r16);
+    cpu.write_to_register(17, value_r17);
+
     // eor r16, r17
-    let program: Vec<u8> = vec![0x04, 0xEE, 0x1D, 0xE1, 0x01, 0x27];
+    let program: Vec<u8> = vec![0x01, 0x27];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!(cpu.memory()[16], 249)
+    assert_eq!(cpu.memory()[16], value_r16 ^ value_r17)
 }
 
 #[test]
 /// Logical OR test
 fn tst_or() {
     let mut cpu = ATmemory::init();
-    // ldi r16, 228
-    // ldi r17, 29
+    let mut rng = rand::thread_rng();
+    let value_r16: u8 = rng.gen_range(0..=255);
+    let value_r17: u8 = rng.gen_range(0..=255);
+    cpu.write_to_register(16, value_r16);
+    cpu.write_to_register(17, value_r17);
+
     // or r16, r17
-    let program: Vec<u8> = vec![0x04, 0xEE, 0x1D, 0xE1, 0x01, 0x2B];
+    let program: Vec<u8> = vec![0x01, 0x2B];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!(cpu.memory()[16], 253)
+    assert_eq!(cpu.memory()[16], value_r16 | value_r17)
 }
 
 #[test]
 /// Logical AND with Immediate test
 fn tst_andi() {
     let mut cpu = ATmemory::init();
-    // ldi r16, 228
+    let mut rng = rand::thread_rng();
+    let value_r16: u8 = rng.gen_range(0..=255);
+    cpu.write_to_register(16, value_r16);
+
     // andi r16, 29
-    let program: Vec<u8> = vec![0x04, 0xEE, 0x0D, 0x71];
+    let program: Vec<u8> = vec![0x0D, 0x71];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!(cpu.memory()[16], 4)
+    assert_eq!(cpu.memory()[16], value_r16 & 29)
 }
 
 #[test]
 /// Logical OR with Immediate test
 fn tst_ori() {
     let mut cpu = ATmemory::init();
-    // ldi r16, 228
+    let mut rng = rand::thread_rng();
+    let value_r16: u8 = rng.gen_range(0..=255);
+    cpu.write_to_register(16, value_r16);
+
     // ori r16, 29
-    let program: Vec<u8> = vec![0x04, 0xEE, 0x0D, 0x61];
+    let program: Vec<u8> = vec![0x0D, 0x61];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!(cpu.memory()[16], 253)
+    assert_eq!(cpu.memory()[16], value_r16 | 29)
 }
 
 #[test]
@@ -215,25 +233,32 @@ fn tst_adiw() {
 #[test]
 fn tst_asr() {
     let mut cpu = ATmemory::init();
-    // ldi r16, 150
+    let mut rng = rand::thread_rng();
+    let value_r16: u8 = rng.gen_range(0..=255);
+    let c_flag = value_r16 & 0x01;
+    cpu.write_to_register(16, value_r16);
+
     // asr r16
-    let program: Vec<u8> = vec![0x06, 0xE9, 0x05, 0x95];
+    let program: Vec<u8> = vec![0x05, 0x95];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!((cpu.memory()[16], cpu.sreg() & 0x01), (203, 0))
+    assert_eq!((cpu.memory()[16], cpu.sreg() & 0x01), (((value_r16 as i8) / 2) as u8, c_flag))
 }
 
 #[test]
 fn tst_out() {
     let mut cpu = ATmemory::init();
-    // ldi r21, 95
+    let mut rng = rand::thread_rng();
+    let value_r21: u8 = rng.gen_range(0..=255);
+    cpu.write_to_register(21, value_r21);
+
     // out SPL, r21
-    let program: Vec<u8> = vec![0x5F, 0xE5, 0x5D, 0xBF];
+    let program: Vec<u8> = vec![0x5D, 0xBF];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!(cpu.memory()[93], 95)
+    assert_eq!(cpu.memory()[93], value_r21)
 }
