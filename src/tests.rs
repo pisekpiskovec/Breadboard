@@ -244,7 +244,7 @@ fn tst_asr() {
     for _ in 0..(program.len() / 2) {
         cpu.step().ok();
     }
-    assert_eq!((cpu.memory()[16], cpu.sreg() & 0x01), (((value_r16 as i8) / 2) as u8, c_flag))
+    assert_eq!((cpu.memory()[16], cpu.sreg() & 0x01), (((value_r16 as i8) >> 1) as u8, c_flag))
 }
 
 #[test]
