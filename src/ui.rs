@@ -2,7 +2,9 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::theme::Mode;
-use iced::widget::{button, column, container, pick_list, row, rule, scrollable, slider, text, text_input};
+use iced::widget::{
+    button, column, container, pick_list, row, rule, scrollable, slider, text, text_input,
+};
 use iced::Length::Fill;
 use iced::{system, Element, Font, Task, Theme};
 use rfd::FileDialog;
@@ -120,6 +122,8 @@ impl UInterface {
 
     pub fn new() -> Self {
         let config = Config::load().unwrap_or_default();
+        let mut cpu = ATmemory::init();
+        cpu.connect_to_hw(&config.bridge_address).ok();
 
         Self {
             theme_mode: match config.theme.mode.as_str() {
@@ -128,7 +132,7 @@ impl UInterface {
                 _ => Mode::None,
             },
             theme: Theme::Dark,
-            cpu: ATmemory::init(),
+            cpu,
             flash_file: None,
             memory_bytes_per_row: config.display.memory_bytes_per_row,
             memory_bytes_per_column: config.display.memory_bytes_per_column,
@@ -144,8 +148,8 @@ impl UInterface {
             display_base_stack: config.display_base.stack,
             run_active: false,
             status_message: None,
-            bridge_address: config.bridge_address,
-            temp_bridge_address: Config::load().unwrap_or_default().bridge_address,
+            bridge_address: config.bridge_address.clone(),
+            temp_bridge_address: config.bridge_address.clone(),
         }
     }
 
@@ -346,6 +350,7 @@ impl UInterface {
                 state.run_active = false;
                 state.cpu.reset();
                 state.cycle_counter = 0;
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
             }
             Message::Restart => {
@@ -353,6 +358,7 @@ impl UInterface {
                 state.cpu = ATmemory::init();
                 state.cycle_counter = 0;
                 state.flash_file = None;
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
             }
             Message::CPUstep => {
@@ -427,7 +433,7 @@ impl UInterface {
             Message::SettingsBridgeChanged(addr) => {
                 state.temp_bridge_address = addr;
                 Task::none()
-            },
+            }
         }
     }
 
