@@ -310,6 +310,7 @@ impl UInterface {
                     return Task::none();
                 }
                 state.flash_file = file.clone();
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 state.status_message = Some(format!(
                     "Loaded {}",
                     state.flash_file.clone().unwrap().as_os_str().display()
@@ -340,6 +341,7 @@ impl UInterface {
                 }
 
                 state.flash_file = file.clone();
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 state.status_message = Some(format!(
                     "Loaded {}",
                     state.flash_file.clone().unwrap().as_os_str().display()
