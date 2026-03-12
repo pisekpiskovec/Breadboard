@@ -22,26 +22,26 @@ enum Instruction {
     AND { dest: u8, src: u8 },    // Logical AND
     ANDI { dest: u8, value: u8 }, // Logical AND with Immediate / Clear Bits in Register
     ASR { dest: u8 },             // Arithmetic Shift Right
-    BRBC { offset: i8, bit: u8 },// Branch if Bit in SREG is Cleared
-    BRBS { offset: i8, bit: u8 },// Branch if Bit in SREG is Set
-    BRCC { offset: i8 },                         // Branch if Carry Cleared
-    BRCS { offset: i8 },                         // Branch if Carry Set
-    BREQ { offset: i8 },                         // Branch if Equal
-    BRGE { offset: i8 },                         // Branch if Greater or Equal (Signed)
-    BRHC { offset: i8 },                         // Branch if Half Carry Flag is Cleared
-    BRHS { offset: i8 },                         // Branch if Half Carry is Set
-    BRID { offset: i8 },                         // Branch if Global Interrupt is Disabled
-    BRIE { offset: i8 },                         // Branch if Global Interrupt is Enabled
-    BRLO { offset: i8 },                         // Branch if Lower (Unsigned)
-    BRLT { offset: i8 },                         // Branch if Less Than (Signed)
-    BRMI { offset: i8 },                         // Branch if Minus
-    BRNE { offset: i8 },                         // Branch if Not Equal
-    BRPL { offset: i8 },                         // Branch if Plus
-    BRSH { offset: i8 },                         // Branch if Same or Higher (Unsigned)
-    BRTC { offset: i8 },                         // Branch if the T Flag is Cleared
-    BRTS { offset: i8 },                         // Branch if the T Flag is Set
-    BRVC { offset: i8 },                         // Branch if Overflow Cleared
-    BRVS { offset: i8 },                         // Branch if Overflow Set
+    BRBC { offset: i8, bit: u8 }, // Branch if Bit in SREG is Cleared
+    BRBS { offset: i8, bit: u8 }, // Branch if Bit in SREG is Set
+    BRCC { offset: i8 },          // Branch if Carry Cleared
+    BRCS { offset: i8 },          // Branch if Carry Set
+    BREQ { offset: i8 },          // Branch if Equal
+    BRGE { offset: i8 },          // Branch if Greater or Equal (Signed)
+    BRHC { offset: i8 },          // Branch if Half Carry Flag is Cleared
+    BRHS { offset: i8 },          // Branch if Half Carry is Set
+    BRID { offset: i8 },          // Branch if Global Interrupt is Disabled
+    BRIE { offset: i8 },          // Branch if Global Interrupt is Enabled
+    BRLO { offset: i8 },          // Branch if Lower (Unsigned)
+    BRLT { offset: i8 },          // Branch if Less Than (Signed)
+    BRMI { offset: i8 },          // Branch if Minus
+    BRNE { offset: i8 },          // Branch if Not Equal
+    BRPL { offset: i8 },          // Branch if Plus
+    BRSH { offset: i8 },          // Branch if Same or Higher (Unsigned)
+    BRTC { offset: i8 },          // Branch if the T Flag is Cleared
+    BRTS { offset: i8 },          // Branch if the T Flag is Set
+    BRVC { offset: i8 },          // Branch if Overflow Cleared
+    BRVS { offset: i8 },          // Branch if Overflow Set
     CALL { dest: u32 },           // Long Call to a Subroutnie
     CBI { dest: u8, bit: u8 },    // Clear Bit in I/O Register
     CLC,                          // Clear Carry Flag
