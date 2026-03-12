@@ -219,6 +219,9 @@ impl ATmemory {
 
     pub fn update_io(&mut self) {
         self.port_mgr.update_io(&mut self.memory).ok();
+        if self.port_mgr.is_reset_holded() {
+            self.reset();
+        }
     }
 
     pub fn step(&mut self) -> Result<(), String> {

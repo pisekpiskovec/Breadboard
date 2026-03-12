@@ -1,14 +1,18 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
+const RESET_ADDRESS: u8 = 0xFF;
+
 #[derive(Debug)]
 pub struct ATport {
+    reset_hold: bool,
     tcp_connection: Option<TcpStream>,
 }
 
 impl ATport {
     pub fn new() -> Self {
         Self {
+            reset_hold: true,
             tcp_connection: None,
         }
     }
@@ -53,14 +57,22 @@ impl ATport {
         self.tcp_connection.is_some()
     }
 
+    pub fn is_reset_holded(&self) -> bool {
+        self.reset_hold
+    }
+
     pub fn update_io(&mut self, memory: &mut [u8; 1120]) -> Result<(), String> {
         if let Some(ref mut stream) = self.tcp_connection {
             let mut buf = [0u8; 2];
 
             match stream.read_exact(&mut buf) {
                 Ok(_) => {
-                    let memory_address = 0x20 + buf[0];
-                    memory[usize::from(memory_address)] = buf[1];
+                    if buf[0] == 0xFF {
+                        self.reset_hold = buf[1] == 0;
+                    } else {
+                        let memory_address = 0x20 + buf[0];
+                        memory[usize::from(memory_address)] = buf[1];
+                    }
                     Ok(())
                 },
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
