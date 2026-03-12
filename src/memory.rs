@@ -22,6 +22,26 @@ enum Instruction {
     AND { dest: u8, src: u8 },    // Logical AND
     ANDI { dest: u8, value: u8 }, // Logical AND with Immediate / Clear Bits in Register
     ASR { dest: u8 },             // Arithmetic Shift Right
+    BRBC { bit: u8 },             // Branch if Bit in SREG is Cleared
+    BRBS { bit: u8 },             // Branch if Bit in SREG is Set
+    BRCC,                         // Branch if Carry Cleared
+    BRCS,                         // Branch if Carry Set
+    BREQ,                         // Branch if Equal
+    BRGE,                         // Branch if Greater or Equal (Signed)
+    BRHC,                         // Branch if Half Carry Flag is Cleared
+    BRHS,                         // Branch if Half Carry is Set
+    BRID,                         // Branch if Global Interrupt is Disabled
+    BRIE,                         // Branch if Global Interrupt is Enabled
+    BRLO,                         // Branch if Lower (Unsigned)
+    BRLT,                         // Branch if Less Than (Signed)
+    BRMI,                         // Branch if Minus
+    BRNE,                         // Branch if Not Equal
+    BRPL,                         // Branch if Plus
+    BRSH,                         // Branch if Same or Higher (Unsigned)
+    BRTC,                         // Branch if the T Flag is Cleared
+    BRTS,                         // Branch if the T Flag is Set
+    BRVC,                         // Branch if Overflow Cleared
+    BRVS,                         // Branch if Overflow Set
     CALL { dest: u32 },           // Long Call to a Subroutnie
     CBI { dest: u8, bit: u8 },    // Clear Bit in I/O Register
     CLC,                          // Clear Carry Flag
