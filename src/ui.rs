@@ -365,10 +365,10 @@ impl UInterface {
             }
             Message::CPUstep => {
                 state.run_active = false;
-                state.cpu.update_io();
                 if let Err(e) = state.cpu.step() {
                     state.status_message = Some(format!("Execution error: {}", e));
                 };
+                state.cpu.update_io();
                 state.cycle_counter += 1;
                 Task::none()
             }
@@ -419,12 +419,12 @@ impl UInterface {
                 Task::none()
             }
             Message::RunTick => {
-                state.cpu.update_io();
                 if let Err(e) = state.cpu.step() {
                     state.run_active = false;
                     state.status_message = Some(format!("Execution error: {}", e));
                     return Task::none();
                 }
+                state.cpu.update_io();
                 state.cycle_counter += 1;
                 Task::none()
             }
