@@ -12,7 +12,7 @@ pub struct ATport {
 impl ATport {
     pub fn new() -> Self {
         Self {
-            reset_hold: true,
+            reset_hold: false,
             tcp_connection: None,
         }
     }
@@ -68,7 +68,7 @@ impl ATport {
             match stream.read_exact(&mut buf) {
                 Ok(_) => {
                     if buf[0] == 0xFF {
-                        self.reset_hold = buf[1] == 0;
+                        self.reset_hold = buf[1] == 1;
                     } else {
                         let memory_address = 0x20 + buf[0];
                         memory[usize::from(memory_address)] = buf[1];
