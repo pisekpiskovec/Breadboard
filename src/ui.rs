@@ -43,6 +43,7 @@ pub enum Message {
     LoadBinToFlash,
     LoadHexToFlash,
     OpenSettings,
+    PollIO,
     Reset,
     Restart,
     RunTick,
@@ -262,13 +263,15 @@ impl UInterface {
     pub fn subscription(&self) -> iced::Subscription<Message> {
         let theme_sub = system::theme_changes().map(Message::ThemeChanged);
 
+        let io_poll_sub = iced::time::every(Duration::from_millis(100)).map(|_| Message::PollIO);
+
         if self.run_active {
             let interval_ms: u64 = (1000.0 / self.instructions_per_second as f64) as u64;
             let timer_sub =
                 iced::time::every(Duration::from_millis(interval_ms)).map(|_| Message::RunTick);
-            iced::Subscription::batch(vec![theme_sub, timer_sub])
+            iced::Subscription::batch(vec![theme_sub, io_poll_sub, timer_sub])
         } else {
-            theme_sub
+            iced::Subscription::batch(vec![theme_sub, io_poll_sub])
         }
     }
 
@@ -368,7 +371,6 @@ impl UInterface {
                 if let Err(e) = state.cpu.step() {
                     state.status_message = Some(format!("Execution error: {}", e));
                 };
-                state.cpu.update_io();
                 state.cycle_counter += 1;
                 Task::none()
             }
@@ -424,7 +426,6 @@ impl UInterface {
                     state.status_message = Some(format!("Execution error: {}", e));
                     return Task::none();
                 }
-                state.cpu.update_io();
                 state.cycle_counter += 1;
                 Task::none()
             }
@@ -434,6 +435,10 @@ impl UInterface {
             }
             Message::SettingsBridgeChanged(addr) => {
                 state.temp_bridge_address = addr;
+                Task::none()
+            }
+            Message::PollIO => {
+                state.cpu.update_io();
                 Task::none()
             }
         }
