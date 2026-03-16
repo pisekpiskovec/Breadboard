@@ -69,14 +69,14 @@ impl ATport {
                     if buf[0] == 0xFF {
                         self.reset_hold = buf[1] == 1;
                     } else {
-                        let memory_address = 0x20 + buf[0];
+                        let memory_address = buf[0];
                         memory[usize::from(memory_address)] = buf[1];
                     }
                     Ok(())
-                },
+                }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     Ok(()) // No data available
-                },
+                }
                 Err(_) => {
                     self.tcp_connection = None;
                     Err("Connection lost".to_string())
