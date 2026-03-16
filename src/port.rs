@@ -1,8 +1,6 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
-const RESET_ADDRESS: u8 = 0xFF;
-
 #[derive(Debug)]
 pub struct ATport {
     reset_hold: bool,
