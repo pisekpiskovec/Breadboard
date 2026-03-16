@@ -457,6 +457,13 @@ impl UInterface {
 
         let header = row![
             text("Breadboard").size(36).width(Fill),
+            text!(
+                "Network status: {}",
+                match self.cpu.is_bridge_connected() {
+                    true => "Connected",
+                    false => "Disconnected",
+                }
+            ),
             button(text("Config")).on_press(Message::OpenSettings)
         ]
         .spacing(8);

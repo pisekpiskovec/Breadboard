@@ -136,6 +136,9 @@ impl ATmemory {
     pub fn connect_to_hw(&mut self, addr: &str) -> Result<(), String> {
         self.port_mgr.connect(addr)
     }
+    pub fn is_bridge_connected(&self) -> bool {
+        self.port_mgr.is_connected()
+    }
 
     pub fn init() -> Self {
         Self {
