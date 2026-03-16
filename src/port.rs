@@ -38,6 +38,7 @@ impl ATport {
         }
     }
 
+    #[deprecated]
     pub fn recive_port_read(&mut self) -> Option<(u8, u8)> {
         if let Some(ref mut stream) = self.tcp_connection {
             // Simple protocol: recive 2 bytes [port, value]
