@@ -2,7 +2,9 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::theme::Mode;
-use iced::widget::{button, checkbox, column, container, pick_list, row, rule, scrollable, slider, text};
+use iced::widget::{
+    button, checkbox, column, container, pick_list, row, rule, scrollable, slider, text, text_input,
+};
 use iced::Length::Fill;
 use iced::{system, Element, Font, Task, Theme};
 use rfd::FileDialog;
@@ -32,6 +34,8 @@ pub struct UInterface {
     theme: Theme,
     theme_mode: Mode,
     run_active: bool,
+    bridge_address: String,
+    temp_bridge_address: String,
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +45,7 @@ pub enum Message {
     LoadBinToFlash,
     LoadHexToFlash,
     OpenSettings,
+    PollIO,
     Reset,
     Restart,
     RunTick,
@@ -52,6 +57,7 @@ pub enum Message {
     SettingsDisplayBaseStackChanged(DisplayBase),
     SettingsInsSecChanged(u32),
     SettingsRowChanged(usize),
+    SettingsBridgeChanged(String),
     ThemeChanged(Mode),
 }
 
@@ -122,6 +128,8 @@ impl UInterface {
 
     pub fn new() -> Self {
         let config = Config::load().unwrap_or_default();
+        let mut cpu = ATmemory::init();
+        cpu.connect_to_hw(&config.bridge_address).ok();
 
         Self {
             theme_mode: match config.theme.mode.as_str() {
@@ -130,7 +138,7 @@ impl UInterface {
                 _ => Mode::None,
             },
             theme: Theme::Dark,
-            cpu: ATmemory::init(),
+            cpu,
             flash_file: None,
             memory_bytes_per_row: config.display.memory_bytes_per_row,
             memory_bytes_per_column: config.display.memory_bytes_per_column,
@@ -148,6 +156,8 @@ impl UInterface {
             display_base_stack: config.display_base.stack,
             run_active: false,
             status_message: None,
+            bridge_address: config.bridge_address.clone(),
+            temp_bridge_address: config.bridge_address.clone(),
         }
     }
 
@@ -168,6 +178,7 @@ impl UInterface {
                 registers: self.display_base_registers,
                 stack: self.display_base_stack,
             },
+            bridge_address: self.bridge_address.clone(),
         };
         config.save()
     }
@@ -259,13 +270,15 @@ impl UInterface {
     pub fn subscription(&self) -> iced::Subscription<Message> {
         let theme_sub = system::theme_changes().map(Message::ThemeChanged);
 
+        let io_poll_sub = iced::time::every(Duration::from_millis(100)).map(|_| Message::PollIO);
+
         if self.run_active {
             let interval_ms: u64 = (1000.0 / self.instructions_per_second as f64) as u64;
             let timer_sub =
                 iced::time::every(Duration::from_millis(interval_ms)).map(|_| Message::RunTick);
-            iced::Subscription::batch(vec![theme_sub, timer_sub])
+            iced::Subscription::batch(vec![theme_sub, io_poll_sub, timer_sub])
         } else {
-            theme_sub
+            iced::Subscription::batch(vec![theme_sub, io_poll_sub])
         }
     }
 
@@ -307,6 +320,7 @@ impl UInterface {
                     return Task::none();
                 }
                 state.flash_file = file.clone();
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 state.status_message = Some(format!(
                     "Loaded {}",
                     state.flash_file.clone().unwrap().as_os_str().display()
@@ -337,6 +351,7 @@ impl UInterface {
                 }
 
                 state.flash_file = file.clone();
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 state.status_message = Some(format!(
                     "Loaded {}",
                     state.flash_file.clone().unwrap().as_os_str().display()
@@ -347,6 +362,7 @@ impl UInterface {
                 state.run_active = false;
                 state.cpu.reset();
                 state.cycle_counter = 0;
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
             }
             Message::Restart => {
@@ -354,6 +370,7 @@ impl UInterface {
                 state.cpu = ATmemory::init();
                 state.cycle_counter = 0;
                 state.flash_file = None;
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
             }
             Message::CPUstep => {
@@ -375,6 +392,7 @@ impl UInterface {
                 state.temp_memory_bytes_per_column = state.memory_bytes_per_column;
                 state.temp_memory_bytes_per_row = state.memory_bytes_per_row;
                 state.show_settings = false;
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
             }
             Message::SettingsRowChanged(val) => {
@@ -396,7 +414,9 @@ impl UInterface {
                 state.instructions_per_second = state.temp_instructions_per_second;
                 state.display_base_registers = state.temp_display_base_registers;
                 state.display_base_stack = state.temp_display_base_stack;
+                state.bridge_address = state.temp_bridge_address.trim().to_string();
                 state.show_settings = false;
+                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 let _ = state.save_config();
                 Task::none()
             }
@@ -425,6 +445,14 @@ impl UInterface {
                 state.run_active = !state.run_active;
                 Task::none()
             }
+            Message::SettingsBridgeChanged(addr) => {
+                state.temp_bridge_address = addr;
+                Task::none()
+            }
+            Message::PollIO => {
+                state.cpu.update_io();
+                Task::none()
+            }
         }
     }
 
@@ -441,6 +469,13 @@ impl UInterface {
 
         let header = row![
             text("Breadboard").size(36).width(Fill),
+            text!(
+                "Network status: {}",
+                match self.cpu.is_bridge_connected() {
+                    true => "Connected",
+                    false => "Disconnected",
+                }
+            ),
             button(text("Config")).on_press(Message::OpenSettings)
         ]
         .spacing(8);
@@ -590,11 +625,9 @@ impl UInterface {
         );
 
         content = content.push(
-            row![
-                checkbox(self.temp_show_ascii_in_flash)
-                    .label("Display ASCII characters next to the flash hex dump?")
-                    .on_toggle(Message::SettingsASCIIChanged)
-            ]
+            row![checkbox(self.temp_show_ascii_in_flash)
+                .label("Display ASCII characters next to the flash hex dump?")
+                .on_toggle(Message::SettingsASCIIChanged)]
             .spacing(4)
             .padding(4),
         );
@@ -634,6 +667,15 @@ impl UInterface {
                     Some(self.temp_display_base_stack),
                     Message::SettingsDisplayBaseStackChanged
                 )
+            ]
+            .spacing(4)
+            .padding(4),
+        );
+
+        content = content.push(
+            row![
+                text("Hardware bridge address:"),
+                text_input("", &self.temp_bridge_address).on_input(Message::SettingsBridgeChanged)
             ]
             .spacing(4)
             .padding(4),
