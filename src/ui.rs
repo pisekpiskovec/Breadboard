@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use iced::theme::Mode;
 use iced::widget::{
-    button, checkbx, column, container, pick_list, row, rule, scrollable, slider, text, text_input,
+    button, checkbox, column, container, pick_list, row, rule, scrollable, slider, text, text_input,
 };
 use iced::Length::Fill;
 use iced::{system, Element, Font, Task, Theme};
