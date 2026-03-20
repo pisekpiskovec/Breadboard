@@ -625,11 +625,9 @@ impl UInterface {
         );
 
         content = content.push(
-            row![
-                checkbox(self.temp_show_ascii_in_flash)
-                    .label("Display ASCII characters next to the flash hex dump?")
-                    .on_toggle(Message::SettingsASCIIChanged)
-            ]
+            row![checkbox(self.temp_show_ascii_in_flash)
+                .label("Display ASCII characters next to the flash hex dump?")
+                .on_toggle(Message::SettingsASCIIChanged)]
             .spacing(4)
             .padding(4),
         );
