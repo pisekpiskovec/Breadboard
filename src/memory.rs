@@ -220,15 +220,9 @@ impl ATmemory {
         self.memory = [0; 1120];
 
         // Request current pin states from Pinout
-        use std::thread;
-        use std::time::Duration;
-
         self.port_mgr.request_port_state(0x39);
-        thread::sleep(Duration::from_millis(5));
         self.port_mgr.request_port_state(0x36);
-        thread::sleep(Duration::from_millis(5));
         self.port_mgr.request_port_state(0x33);
-        thread::sleep(Duration::from_millis(5));
         self.port_mgr.request_port_state(0x30);
     }
 
