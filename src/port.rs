@@ -107,10 +107,7 @@ impl ATport {
                 value: 0,
             }
             .to_bytes();
-
-            if stream.write_all(&data).is_ok() {
-                stream.flush().ok();
-            } else {
+            if stream.write_all(&data).is_err() {
                 self.tcp_connection = None;
             }
         }
