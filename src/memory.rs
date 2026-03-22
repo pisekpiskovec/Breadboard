@@ -218,6 +218,12 @@ impl ATmemory {
         self.pc = 0;
         self.sp = 0x45F;
         self.memory = [0; 1120];
+
+        // Request current pin states from Pinout
+        self.port_mgr.request_port_state(0x39);
+        self.port_mgr.request_port_state(0x36);
+        self.port_mgr.request_port_state(0x33);
+        self.port_mgr.request_port_state(0x30);
     }
 
     pub fn update_io(&mut self) {
