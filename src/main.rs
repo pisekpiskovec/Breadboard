@@ -1,7 +1,8 @@
 mod config;
 mod memory;
-mod ui;
+mod port;
 mod tests;
+mod ui;
 
 use crate::ui::UInterface;
 

@@ -1,12 +1,15 @@
 use std::fmt::{self};
 use std::fs::read_to_string;
 
+use crate::port::ATport;
+
 #[derive(Debug)]
 pub(crate) struct ATmemory {
     pc: u16,            // Program Counter register
     sp: u16,            // Stack Pointer register
     flash: [u8; 16384], // 16K Bytes of In-System Self-Programmable Flash
     memory: [u8; 1120], // EEPROM
+    port_mgr: ATport,
 }
 
 struct HexRecord {
@@ -130,6 +133,12 @@ impl ATmemory {
     pub fn memory(&self) -> &[u8; 1120] {
         &self.memory
     }
+    pub fn connect_to_hw(&mut self, addr: &str) -> Result<(), String> {
+        self.port_mgr.connect(addr)
+    }
+    pub fn is_bridge_connected(&self) -> bool {
+        self.port_mgr.is_connected()
+    }
 
     pub fn init() -> Self {
         Self {
@@ -137,6 +146,7 @@ impl ATmemory {
             sp: 0x45F,
             flash: [0; 16384],
             memory: [0; 1120],
+            port_mgr: ATport::new(),
         }
     }
 
@@ -210,11 +220,31 @@ impl ATmemory {
         self.memory = [0; 1120];
     }
 
+    pub fn update_io(&mut self) {
+        self.port_mgr.update_io(&mut self.memory).ok();
+        if self.port_mgr.is_reset_holded() {
+            self.reset();
+        }
+    }
+
     pub fn step(&mut self) -> Result<(), String> {
+        self.ports_and_pins();
         let opcode = self.fetch();
         let instruction = self.decode(opcode)?;
         self.execute(instruction)?;
         Ok(())
+    }
+
+    fn ports_and_pins(&mut self) {
+        let pin_addresses = [0x39, 0x36, 0x33, 0x30];
+        for addr in pin_addresses.iter() {
+            let port = self.read_memory(addr + 2);
+            let ddr = self.read_memory(addr + 1);
+            let pin = self.read_memory(*addr);
+            let pin = (port & ddr) | (pin & !ddr);
+            self.write_memory(*addr, pin);
+            self.port_mgr.send_port_write(*addr as u8, pin);
+        }
     }
 
     pub fn get_instruction(&self) -> String {

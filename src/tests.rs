@@ -7,6 +7,7 @@ use rand::Rng;
 /// Load 255 to r17
 fn tst_ldi() {
     let mut cpu = ATmemory::init();
+    // ldi r17, 255
     let program: Vec<u8> = vec![0x1F, 0xEF];
     cpu.load_flash_from_vec(program).ok();
     cpu.step().ok();
@@ -21,6 +22,7 @@ fn tst_add() {
     let value_r17: u8 = rng.gen_range(0..=255);
     cpu.write_to_register(16, value_r16);
     cpu.write_to_register(17, value_r17);
+    // add r16, r17
     let program: Vec<u8> = vec![0x01, 0x0F];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
@@ -37,6 +39,7 @@ fn tst_sub() {
     let value_r17: u8 = rng.gen_range(0..=255);
     cpu.write_to_register(16, value_r16);
     cpu.write_to_register(17, value_r17);
+    // sub r16, r17
     let program: Vec<u8> = vec![0x01, 0x1B];
     cpu.load_flash_from_vec(program.clone()).ok();
     for _ in 0..(program.len() / 2) {
