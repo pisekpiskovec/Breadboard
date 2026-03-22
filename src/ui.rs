@@ -362,7 +362,6 @@ impl UInterface {
                 state.run_active = false;
                 state.cpu.reset();
                 state.cycle_counter = 0;
-                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
             }
             Message::Restart => {
