@@ -544,7 +544,7 @@ impl ATmemory {
                 // Z - Zero flag
                 self.update_flag(0b00000010, self.read_memory(dest as u16) == 0);
                 // C - Carry flag
-                self.update_flag(0b00000010, rd0 == 1);
+                self.update_flag(0b00000001, rd0 == 1);
 
                 self.pc += 1;
                 Ok(())
@@ -875,6 +875,12 @@ impl ATmemory {
         let ret = self.read_memory(self.sp);
         self.sp = self.sp.wrapping_add(1);
         Ok(ret)
+    }
+
+    pub fn write_to_register(&mut self, addr: u16, value: u8) {
+        if addr < 32 {
+            self.memory[addr as usize] = value;
+        }
     }
 }
 

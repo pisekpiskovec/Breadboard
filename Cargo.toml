@@ -11,3 +11,6 @@ toml = "0.8"
 dirs = "5.0"
 smol = "2"
 wire = { git = "https://github.com/PisekPiskovec/Wire.git", tag = "v2"}
+
+[dev-dependencies]
+rand = "0.8"
