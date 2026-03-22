@@ -270,7 +270,7 @@ impl UInterface {
     pub fn subscription(&self) -> iced::Subscription<Message> {
         let theme_sub = system::theme_changes().map(Message::ThemeChanged);
 
-        let io_poll_sub = iced::time::every(Duration::from_millis(100)).map(|_| Message::PollIO);
+        let io_poll_sub = iced::time::every(Duration::from_millis(50)).map(|_| Message::PollIO);
 
         if self.run_active {
             let interval_ms: u64 = (1000.0 / self.instructions_per_second as f64) as u64;
@@ -362,7 +362,6 @@ impl UInterface {
                 state.run_active = false;
                 state.cpu.reset();
                 state.cycle_counter = 0;
-                state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
             }
             Message::Restart => {
