@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use Wire::{Message, CMD_REQUEST, CMD_RESET, CMD_RESPONSE, CMD_WRITE, PROTOCOL_VERSION};
+use wire::{Message, CMD_REQUEST, CMD_RESET, CMD_RESPONSE, CMD_WRITE, PROTOCOL_VERSION};
 
 #[derive(Debug)]
 pub struct ATport {
@@ -62,7 +62,7 @@ impl ATport {
                     let data = Message::from_bytes(buf);
 
                     // Protocol version check
-                    if data.version != Wire::PROTOCOL_VERSION {
+                    if data.version != PROTOCOL_VERSION {
                         return Err("Protocol version mismatch".to_string());
                     }
 
