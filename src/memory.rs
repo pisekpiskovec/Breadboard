@@ -374,6 +374,10 @@ impl ATmemory {
                 dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
                 value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
             }),
+            x if (x & 0xFC00) == 0xF000 => Ok(Instruction::BRBS {
+                offset: ((x & 0x1FC) >> 3) as i8,
+                bit: (x & 0b111) as u8,
+            }),
             x if (x & 0xFC00) == 0xF400 => Ok(Instruction::BRBC {
                 offset: ((x & 0x1FC) >> 3) as i8,
                 bit: (x & 0b111) as u8,
@@ -538,7 +542,15 @@ impl ATmemory {
                 Ok(())
             }
             Instruction::BRBC { offset, bit } => {
-                if self.sreg() >> bit == 0  {
+                if self.sreg() >> bit == 0 {
+                    self.pc += (offset + 1) as u16;
+                } else {
+                    self.pc += 1;
+                }
+                Ok(())
+            }
+            Instruction::BRBS { offset, bit } => {
+                if self.sreg() >> bit == 1 {
                     self.pc += (offset + 1) as u16;
                 } else {
                     self.pc += 1;
