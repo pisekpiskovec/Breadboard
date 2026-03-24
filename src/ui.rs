@@ -523,6 +523,9 @@ impl UInterface {
                 column![
                     text!("Program Counter | {:#06X}", self.cpu.pc()),
                     text!("Stack Pointer | {:#04X}", self.cpu.sp()),
+                    text!("X Pointer | {:#06X}", self.cpu.xp()),
+                    text!("Y Pointer | {:#06X}", self.cpu.yp()),
+                    text!("Z Pointer | {:#06X}", self.cpu.zp()),
                     text!("Cycle Counter | {:06}", self.cycle_counter),
                     text!("Frequency | {:02} Hz", self.instructions_per_second),
                     Self::render_sreg(self),
