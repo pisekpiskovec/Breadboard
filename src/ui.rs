@@ -521,8 +521,8 @@ impl UInterface {
         let left_sidebar = column![
             scrollable(
                 column![
-                    text!("Program Counter | {:#06X}", self.cpu.pc()),
-                    text!("Stack Pointer | {:#04X}", self.cpu.sp()),
+                    text!("Program Counter | {:#08X}", self.cpu.pc()),
+                    text!("Stack Pointer | {:#06X}", self.cpu.sp()),
                     text!("X Pointer | {:#06X}", self.cpu.xp()),
                     text!("Y Pointer | {:#06X}", self.cpu.yp()),
                     text!("Z Pointer | {:#06X}", self.cpu.zp()),
