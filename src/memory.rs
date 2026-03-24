@@ -52,6 +52,7 @@ enum Instruction {
     CLT,                          // Clear T Flag
     CLV,                          // Clear Overflow Flag
     CLZ,                          // Clear Zero Flag
+    CP { dest: u8, src: u8 },     // Compare
     DEC { reg: u8 },              // Decrement
     EOR { dest: u8, src: u8 },    // Exclusive OR / Clear Register
     IN { addr: u16, dest: u8 },   // Load an I/O Location to Register
@@ -259,6 +260,10 @@ impl ATmemory {
         match opcode {
             0x0000 => Ok(Instruction::NOP),
             x if (x & 0xFC00) == 0x0C00 => Ok(Instruction::ADD {
+                dest: ((x >> 4) & 0x1F) as u8,
+                src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
+            }),
+            x if (x & 0xFC00) == 0x1400 => Ok(Instruction::CP {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
@@ -613,6 +618,37 @@ impl ATmemory {
             }
             Instruction::CLZ => {
                 self.clear_flag(0b00000010);
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::CP { dest, src } => {
+                let rd3 = Self::bit(self.read_memory(dest as u16), 3);
+                let rr3 = Self::bit(self.read_memory(src as u16), 3);
+                let rd7 = Self::bit(self.read_memory(dest as u16), 7);
+                let rr7 = Self::bit(self.read_memory(src as u16), 7);
+
+                let r: u8 = self
+                    .read_memory(dest as u16)
+                    .wrapping_sub(self.read_memory(src as u16));
+
+                let r3 = Self::bit(r, 3);
+                let r7 = Self::bit(r, 7);
+                let n = r7 == 1;
+                let v = (rd7 & !rr7 & !r7 | !rd7 & rr7 & r7) != 0;
+
+                // H - Half-Carry flag
+                self.update_flag(0b00100000, (!rd3 & rr3 | rr3 & r3 | r3 & !rd3) != 0);
+                // S - Signed Tests flag
+                self.update_flag(0b00010000, n ^ v);
+                // V - Two Complements flag
+                self.update_flag(0b00001000, v);
+                // N - Negative flag
+                self.update_flag(0b00000100, n);
+                // Z - Zero flag
+                self.update_flag(0b00000010, r == 0);
+                // C - Carry flag
+                self.update_flag(0b00000001, (!rd7 & rr7 | rr7 & r7 | r7 & !rd7) != 0);
+
                 self.pc += 1;
                 Ok(())
             }
