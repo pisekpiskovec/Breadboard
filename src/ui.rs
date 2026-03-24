@@ -15,7 +15,6 @@ use crate::memory::ATmemory;
 #[derive(Debug)]
 pub struct UInterface {
     cpu: ATmemory,
-    cycle_counter: usize,
     display_base_registers: DisplayBase,
     display_base_stack: DisplayBase,
     flash_file: Option<PathBuf>,
@@ -149,7 +148,6 @@ impl UInterface {
             temp_show_ascii_in_flash: true,
             instructions_per_second: 1,
             temp_instructions_per_second: 1,
-            cycle_counter: 0,
             temp_display_base_registers: DisplayBase::Decimal,
             display_base_registers: config.display_base.registers,
             temp_display_base_stack: DisplayBase::Hexadecimal,
@@ -300,7 +298,6 @@ impl UInterface {
             Message::LoadBinToFlash => {
                 state.run_active = false;
                 state.cpu = ATmemory::init();
-                state.cycle_counter = 0;
                 state.flash_file = None;
                 let file = FileDialog::new()
                     .add_filter("Binary file", &["bin"])
@@ -330,7 +327,6 @@ impl UInterface {
             Message::LoadHexToFlash => {
                 state.run_active = false;
                 state.cpu = ATmemory::init();
-                state.cycle_counter = 0;
                 state.flash_file = None;
                 let file = FileDialog::new()
                     .add_filter("Hex file", &["hex"])
@@ -361,13 +357,11 @@ impl UInterface {
             Message::Reset => {
                 state.run_active = false;
                 state.cpu.reset();
-                state.cycle_counter = 0;
                 Task::none()
             }
             Message::Restart => {
                 state.run_active = false;
                 state.cpu = ATmemory::init();
-                state.cycle_counter = 0;
                 state.flash_file = None;
                 state.cpu.connect_to_hw(&state.bridge_address).ok();
                 Task::none()
@@ -377,7 +371,6 @@ impl UInterface {
                 if let Err(e) = state.cpu.step() {
                     state.status_message = Some(format!("Execution error: {}", e));
                 };
-                state.cycle_counter += 1;
                 Task::none()
             }
             Message::OpenSettings => {
@@ -437,7 +430,6 @@ impl UInterface {
                     state.status_message = Some(format!("Execution error: {}", e));
                     return Task::none();
                 }
-                state.cycle_counter += 1;
                 Task::none()
             }
             Message::RunToggle => {
@@ -523,7 +515,7 @@ impl UInterface {
                 column![
                     text!("Program Counter | {:#06X}", self.cpu.pc()),
                     text!("Stack Pointer | {:#04X}", self.cpu.sp()),
-                    text!("Cycle Counter | {:06}", self.cycle_counter),
+                    text!("Cycle Counter | {:06}", self.cpu.cycle_cnt()),
                     text!("Frequency | {:02} Hz", self.instructions_per_second),
                     Self::render_sreg(self),
                 ]
