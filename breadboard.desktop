@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Breadboard
+GenericName=An ATmega16 emulator
+Comment=An ATmega16 emulator.
+Exec=breadboard
+Categories=Development;Education;Debugger;RemoteAccess;Simulation;Science;ComputerScience;Robotics;Electronics;Emulator;
+Icon=computer-chip-symbolic
+Terminal=false
