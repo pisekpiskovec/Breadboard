@@ -14,4 +14,6 @@ release:
 install:
     cargo build --release
     cp ./target/release/Breadboard $HOME/.local/bin/breadboard
+    desktop-file-install --dir=$HOME/.local/share/applications breadboard.desktop
+    update-desktop-database ~/.local/share/applications
     cargo clean
