@@ -10,6 +10,7 @@ pub(crate) struct ATmemory {
     flash: [u8; 16384], // 16K Bytes of In-System Self-Programmable Flash
     memory: [u8; 1120], // EEPROM
     port_mgr: ATport,
+    cycle_cnt: u32,
 }
 
 struct HexRecord {
@@ -148,6 +149,9 @@ impl ATmemory {
     pub fn is_bridge_connected(&self) -> bool {
         self.port_mgr.is_connected()
     }
+    pub fn cycle_cnt(&self) -> u32 {
+        self.cycle_cnt
+    }
 
     pub fn init() -> Self {
         Self {
@@ -156,6 +160,7 @@ impl ATmemory {
             flash: [0; 16384],
             memory: [0; 1120],
             port_mgr: ATport::new(),
+            cycle_cnt: 0,
         }
     }
 
@@ -221,12 +226,14 @@ impl ATmemory {
     pub fn erase_flash(&mut self) {
         self.flash = [0; 16384];
         self.pc = 0;
+        self.cycle_cnt = 0;
     }
 
     pub fn reset(&mut self) {
         self.pc = 0;
         self.sp = 0x45F;
         self.memory = [0; 1120];
+        self.cycle_cnt = 0;
 
         // Request current pin states from Pinout
         self.port_mgr.request_port_state(0x39);
@@ -247,6 +254,7 @@ impl ATmemory {
         let opcode = self.fetch();
         let instruction = self.decode(opcode)?;
         self.execute(instruction)?;
+        self.cycle_cnt += 1;
         Ok(())
     }
 
