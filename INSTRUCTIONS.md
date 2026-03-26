@@ -42,6 +42,7 @@ For currently supported instructions, see table below.
 | CLT         | Clear T Flag                           |                                      |
 | CLV         | Clear Overflow Flag                    |                                      |
 | CLZ         | Clear Zero Flag                        |                                      |
+| CP          | Compare                                |                                      |
 | DEC         | Decrement                              |                                      |
 | EOR         | Exclusive OR                           |                                      |
 | INC         | Increment                              |                                      |
