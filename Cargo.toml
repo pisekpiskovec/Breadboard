@@ -2,6 +2,15 @@
 name = "Breadboard"
 version = "1.1.1"
 edition = "2024"
+license = "MIT"
+description = "An ATmega16 emulator"
+repository = "https://github.com/pisekpiskovec/Breadboard"
+
+[package.metadata.generate-rpm]
+assets = [
+  { source = "target/release/Breadboard", dest = "/usr/bin/breadboard", mode = "755"},
+  { source = "breadboard.desktop", dest = "/usr/share/applications/breadboard.desktop", mode = "644"},
+]
 
 [dependencies]
 iced = { version = "0.14.0", features = ["smol"] }
