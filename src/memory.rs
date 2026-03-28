@@ -128,6 +128,15 @@ impl ATmemory {
     pub fn sp(&self) -> u16 {
         self.sp
     }
+    pub fn xp(&self) -> u16 {
+        ((self.memory[27] as u16) << 8) | self.memory[26] as u16
+    }
+    pub fn yp(&self) -> u16 {
+        ((self.memory[29] as u16) << 8) | self.memory[28] as u16
+    }
+    pub fn zp(&self) -> u16 {
+        ((self.memory[31] as u16) << 8) | self.memory[30] as u16
+    }
     pub fn flash(&self) -> &[u8; 16384] {
         &self.flash
     }
