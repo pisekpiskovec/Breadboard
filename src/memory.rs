@@ -26,6 +26,8 @@ enum Instruction {
     AND { dest: u8, src: u8 },    // Logical AND
     ANDI { dest: u8, value: u8 }, // Logical AND with Immediate / Clear Bits in Register
     ASR { dest: u8 },             // Arithmetic Shift Right
+    BRBC { offset: i8, bit: u8 }, // Branch if Bit in SREG is Cleared
+    BRBS { offset: i8, bit: u8 }, // Branch if Bit in SREG is Set
     CALL { dest: u32 },           // Long Call to a Subroutnie
     CBI { dest: u8, bit: u8 },    // Clear Bit in I/O Register
     CLC,                          // Clear Carry Flag
@@ -36,6 +38,7 @@ enum Instruction {
     CLT,                          // Clear T Flag
     CLV,                          // Clear Overflow Flag
     CLZ,                          // Clear Zero Flag
+    CP { dest: u8, src: u8 },     // Compare
     DEC { reg: u8 },              // Decrement
     EOR { dest: u8, src: u8 },    // Exclusive OR / Clear Register
     IN { addr: u16, dest: u8 },   // Load an I/O Location to Register
@@ -295,6 +298,10 @@ impl ATmemory {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
+            x if (x & 0xFC00) == 0x1400 => Ok(Instruction::CP {
+                dest: ((x >> 4) & 0x1F) as u8,
+                src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
+            }),
             x if (x & 0xFC00) == 0x1800 => Ok(Instruction::SUB {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
@@ -406,6 +413,14 @@ impl ATmemory {
             x if (x & 0xF000) == 0xE000 => Ok(Instruction::LDI {
                 dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
                 value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
+            }),
+            x if (x & 0xFC00) == 0xF000 => Ok(Instruction::BRBS {
+                offset: ((x & 0x1FC) >> 3) as i8,
+                bit: (x & 0b111) as u8,
+            }),
+            x if (x & 0xFC00) == 0xF400 => Ok(Instruction::BRBC {
+                offset: ((x & 0x1FC) >> 3) as i8,
+                bit: (x & 0b111) as u8,
             }),
             _ => Err(String::from("Unable to decode instruction")),
         }
@@ -566,6 +581,22 @@ impl ATmemory {
                 self.pc += 1;
                 Ok(())
             }
+            Instruction::BRBC { offset, bit } => {
+                if self.sreg() >> bit == 0 {
+                    self.pc += (offset + 1) as u16;
+                } else {
+                    self.pc += 1;
+                }
+                Ok(())
+            }
+            Instruction::BRBS { offset, bit } => {
+                if self.sreg() >> bit == 1 {
+                    self.pc += (offset + 1) as u16;
+                } else {
+                    self.pc += 1;
+                }
+                Ok(())
+            }
             Instruction::CALL { dest } => {
                 let future_pc = self.pc + 2;
                 let st_h = (future_pc >> 8) as u8;
@@ -622,6 +653,37 @@ impl ATmemory {
             }
             Instruction::CLZ => {
                 self.clear_flag(0b00000010);
+                self.pc += 1;
+                Ok(())
+            }
+            Instruction::CP { dest, src } => {
+                let rd3 = Self::bit(self.read_memory(dest as u16), 3);
+                let rr3 = Self::bit(self.read_memory(src as u16), 3);
+                let rd7 = Self::bit(self.read_memory(dest as u16), 7);
+                let rr7 = Self::bit(self.read_memory(src as u16), 7);
+
+                let r: u8 = self
+                    .read_memory(dest as u16)
+                    .wrapping_sub(self.read_memory(src as u16));
+
+                let r3 = Self::bit(r, 3);
+                let r7 = Self::bit(r, 7);
+                let n = r7 == 1;
+                let v = (rd7 & !rr7 & !r7 | !rd7 & rr7 & r7) != 0;
+
+                // H - Half-Carry flag
+                self.update_flag(0b00100000, (!rd3 & rr3 | rr3 & r3 | r3 & !rd3) != 0);
+                // S - Signed Tests flag
+                self.update_flag(0b00010000, n ^ v);
+                // V - Two Complements flag
+                self.update_flag(0b00001000, v);
+                // N - Negative flag
+                self.update_flag(0b00000100, n);
+                // Z - Zero flag
+                self.update_flag(0b00000010, r == 0);
+                // C - Carry flag
+                self.update_flag(0b00000001, (!rd7 & rr7 | rr7 & r7 | r7 & !rd7) != 0);
+
                 self.pc += 1;
                 Ok(())
             }
@@ -908,8 +970,8 @@ impl ATmemory {
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
 // (x & 0xF800) == 0xB800
-//    OUT = 1011|1AAr|rrrr|AAAA
-// 0xF800 = 1111|1000|0000|0000 => mask
+//   BRBC = 1111|01kk|kkkk|ksss
+// 0xF800 = 1111|1100|0000|0000 => mask
 // 0xB800 = 1011|1000|0000|0000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
