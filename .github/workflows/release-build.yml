@@ -1,0 +1,28 @@
+name: Build on release
+
+on:
+  release:
+    types: [ published ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-rpm:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install cargo-generate-rpm
+      run: cargo install cargo-generate-rpm
+    - name: Build release binary
+      run: cargo build --release
+    - name: Strip binary
+      run: strip -s target/release/Breadboard
+    - name: Generate RPM
+      run: cargo generate-rpm
+    - name: Upload RPM to release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: target/generate-rpm/*.rpm
+
