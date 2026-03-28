@@ -8,7 +8,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-rpm:
+  build-rpm-x64:
     runs-on: ubuntu-latest
 
     steps:
@@ -25,4 +25,20 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         files: target/generate-rpm/*.rpm
+
+  build-elf-x64:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build release binary
+      run: cargo build --release
+    - name: Strip binary
+      run: strip -s target/release/Breadboard
+    - name: Rename binary
+      run: mv target/release/Breadboard target/release/breadboard-x64
+    - name: Upload binary to release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: target/release/breadboard-x64
 
