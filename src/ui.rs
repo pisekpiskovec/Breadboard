@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use iced::event::{self, Event};
+use iced::keyboard;
+use iced::keyboard::key;
 use iced::theme::Mode;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, rule, scrollable, slider, text, text_input,
@@ -41,6 +44,7 @@ pub struct UInterface {
 pub enum Message {
     CPUstep,
     CloseSettings,
+    Event(Event),
     LoadBinToFlash,
     LoadHexToFlash,
     OpenSettings,
@@ -270,13 +274,15 @@ impl UInterface {
 
         let io_poll_sub = iced::time::every(Duration::from_millis(50)).map(|_| Message::PollIO);
 
+        let keyboard_sub = event::listen().map(Message::Event);
+
         if self.run_active {
             let interval_ms: u64 = (1000.0 / self.instructions_per_second as f64) as u64;
             let timer_sub =
                 iced::time::every(Duration::from_millis(interval_ms)).map(|_| Message::RunTick);
-            iced::Subscription::batch(vec![theme_sub, io_poll_sub, timer_sub])
+            iced::Subscription::batch(vec![theme_sub, io_poll_sub, timer_sub, keyboard_sub])
         } else {
-            iced::Subscription::batch(vec![theme_sub, io_poll_sub])
+            iced::Subscription::batch(vec![theme_sub, io_poll_sub, keyboard_sub])
         }
     }
 
@@ -444,6 +450,26 @@ impl UInterface {
                 state.cpu.update_io();
                 Task::none()
             }
+            Message::Event(event) => match event {
+                Event::Keyboard(keyboard::Event::KeyReleased {
+                    key: keyboard::Key::Named(key::Named::F5),
+                    ..
+                }) => {
+                    state.run_active = state.flash_file.is_some() && !state.run_active;
+                    Task::none()
+                }
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Named(key::Named::F8),
+                    ..
+                }) => {
+                    state.run_active = false;
+                    if state.flash_file.is_some() && let Err(e) = state.cpu.step() {
+                        state.status_message = Some(format!("Execution error: {}", e));
+                    };
+                    Task::none()
+                }
+                _ => Task::none(),
+            },
         }
     }
 
