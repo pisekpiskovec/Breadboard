@@ -15,6 +15,15 @@ assets = [
 [package.metadata.generate-rpm.recommends]
 avra = ">= 1.4.2"
 
+[package.metadata.deb]
+section = "education"
+depends = "$auto"
+recommends = "avra >= 1.4.2"
+assets = [
+  { source = "target/release/Breadboard", dest = "/usr/bin/breadboard", mode = "755"},
+  { source = "breadboard.desktop", dest = "/usr/share/applications/breadboard.desktop", mode = "644"},
+]
+
 [dependencies]
 iced = { version = "0.14.0", features = ["smol"] }
 rfd = "0.17.2"

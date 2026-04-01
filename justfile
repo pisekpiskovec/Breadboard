@@ -26,3 +26,12 @@ gen-rpm:
     cargo generate-rpm
     mv target/generate-rpm/*.rpm ./
     cargo clean
+
+[linux]
+gen-deb:
+    cargo install cargo-deb
+    cargo build --release
+    strip -s target/release/Breadboard
+    cargo deb
+    mv target/debian/*.deb ./
+    cargo clean
