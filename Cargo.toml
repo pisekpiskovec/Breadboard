@@ -12,6 +12,9 @@ assets = [
   { source = "breadboard.desktop", dest = "/usr/share/applications/breadboard.desktop", mode = "644"},
 ]
 
+[package.metadata.generate-rpm.recommends]
+avra = ">= 1.4.2"
+
 [dependencies]
 iced = { version = "0.14.0", features = ["smol"] }
 rfd = "0.17.2"
