@@ -56,12 +56,12 @@ jobs:
       run: cargo build --release
     - name: Strip binary
       run: strip -s target/release/Breadboard
-    - name: Generate RPM
-      run: cargo generate-rpm
-    - name: Upload RPM to release
+    - name: Generate DEB
+      run: cargo deb
+    - name: Upload DEB to release
       uses: softprops/action-gh-release@v2
       with:
-        files: target/generate-rpm/*.rpm
+        files: target/debian/*.deb
 
   build-deb-arm:
     runs-on: ubuntu-24.04-arm
@@ -74,10 +74,26 @@ jobs:
       run: cargo build --release
     - name: Strip binary
       run: strip -s target/release/Breadboard
-    - name: Generate RPM
-      run: cargo generate-rpm
-    - name: Upload RPM to release
+    - name: Generate DEB
+      run: cargo deb
+    - name: Upload DEB to release
       uses: softprops/action-gh-release@v2
       with:
-        files: target/generate-rpm/*.rpm
+        files: target/debian/*.deb
+
+  build-elf-arm:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build release binary
+      run: cargo build --release
+    - name: Strip binary
+      run: strip -s target/release/Breadboard
+    - name: Rename binary
+      run: mv target/release/Breadboard target/release/breadboard-arm
+    - name: Upload binary to release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: target/release/breadboard-arm
 
