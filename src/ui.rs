@@ -451,22 +451,62 @@ impl UInterface {
                 Task::none()
             }
             Message::Event(event) => match event {
+                // Auto Run toggle
                 Event::Keyboard(keyboard::Event::KeyReleased {
                     key: keyboard::Key::Named(key::Named::F5),
                     ..
-                }) => {
-                    state.run_active = state.flash_file.is_some() && !state.run_active;
-                    Task::none()
-                }
+                }) => Task::done(Message::RunToggle),
+
+                // Step trigger
                 Event::Keyboard(keyboard::Event::KeyPressed {
                     key: keyboard::Key::Named(key::Named::F8),
                     ..
+                }) => Task::done(Message::CPUstep),
+
+                // Config open
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Named(key::Named::F12),
+                    ..
+                }) if !state.show_settings => Task::done(Message::OpenSettings),
+
+                // Config close
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Named(key::Named::F12),
+                    modifiers,
+                    ..
+                }) if state.show_settings => {
+                    if modifiers.is_empty() {
+                        Task::done(Message::CloseSettings)
+                    } else if modifiers.control() {
+                        Task::done(Message::SaveSettings)
+                    } else {
+                        Task::none()
+                    }
+                }
+
+                // Match any letter
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Character(c),
+                    modifiers,
+                    ..
                 }) => {
-                    state.run_active = false;
-                    if state.flash_file.is_some() && let Err(e) = state.cpu.step() {
-                        state.status_message = Some(format!("Execution error: {}", e));
-                    };
-                    Task::none()
+                    if c.as_str() == "o" && modifiers.command() {
+                        Task::done(Message::LoadHexToFlash)
+                    } else if c.as_str() == "o" && modifiers.alt() {
+                        Task::done(Message::LoadBinToFlash)
+                    } else if c.as_str() == "r" && modifiers.command() {
+                        Task::done(Message::Reset)
+                    } else if c.as_str() == "r" && modifiers.alt() {
+                        Task::done(Message::Restart)
+                    } else if c.as_str() == "*" {
+                        state.show_ascii_in_flash = !state.show_ascii_in_flash;
+                        state.temp_show_ascii_in_flash = state.show_ascii_in_flash;
+                        Task::none()
+                    } else if c.as_str() == "q" && modifiers.control() {
+                        iced::window::latest().and_then(iced::window::close)
+                    } else {
+                        Task::none()
+                    }
                 }
                 _ => Task::none(),
             },
