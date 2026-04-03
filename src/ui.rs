@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use iced::event::{self, Event};
+use iced::keyboard;
+use iced::keyboard::key;
 use iced::theme::Mode;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, rule, scrollable, slider, text, text_input,
@@ -41,6 +44,7 @@ pub struct UInterface {
 pub enum Message {
     CPUstep,
     CloseSettings,
+    Event(Event),
     LoadBinToFlash,
     LoadHexToFlash,
     OpenSettings,
@@ -270,13 +274,15 @@ impl UInterface {
 
         let io_poll_sub = iced::time::every(Duration::from_millis(50)).map(|_| Message::PollIO);
 
+        let keyboard_sub = event::listen().map(Message::Event);
+
         if self.run_active {
             let interval_ms: u64 = (1000.0 / self.instructions_per_second as f64) as u64;
             let timer_sub =
                 iced::time::every(Duration::from_millis(interval_ms)).map(|_| Message::RunTick);
-            iced::Subscription::batch(vec![theme_sub, io_poll_sub, timer_sub])
+            iced::Subscription::batch(vec![theme_sub, io_poll_sub, timer_sub, keyboard_sub])
         } else {
-            iced::Subscription::batch(vec![theme_sub, io_poll_sub])
+            iced::Subscription::batch(vec![theme_sub, io_poll_sub, keyboard_sub])
         }
     }
 
@@ -444,6 +450,66 @@ impl UInterface {
                 state.cpu.update_io();
                 Task::none()
             }
+            Message::Event(event) => match event {
+                // Auto Run toggle
+                Event::Keyboard(keyboard::Event::KeyReleased {
+                    key: keyboard::Key::Named(key::Named::F5),
+                    ..
+                }) => Task::done(Message::RunToggle),
+
+                // Step trigger
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Named(key::Named::F8),
+                    ..
+                }) => Task::done(Message::CPUstep),
+
+                // Config open
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Named(key::Named::F12),
+                    ..
+                }) if !state.show_settings => Task::done(Message::OpenSettings),
+
+                // Config close
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Named(key::Named::F12),
+                    modifiers,
+                    ..
+                }) if state.show_settings => {
+                    if modifiers.is_empty() {
+                        Task::done(Message::CloseSettings)
+                    } else if modifiers.control() {
+                        Task::done(Message::SaveSettings)
+                    } else {
+                        Task::none()
+                    }
+                }
+
+                // Match any letter
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key: keyboard::Key::Character(c),
+                    modifiers,
+                    ..
+                }) => {
+                    if c.as_str() == "o" && modifiers.command() {
+                        Task::done(Message::LoadHexToFlash)
+                    } else if c.as_str() == "o" && modifiers.alt() {
+                        Task::done(Message::LoadBinToFlash)
+                    } else if c.as_str() == "r" && modifiers.command() {
+                        Task::done(Message::Reset)
+                    } else if c.as_str() == "r" && modifiers.alt() {
+                        Task::done(Message::Restart)
+                    } else if c.as_str() == "*" {
+                        state.show_ascii_in_flash = !state.show_ascii_in_flash;
+                        state.temp_show_ascii_in_flash = state.show_ascii_in_flash;
+                        Task::none()
+                    } else if c.as_str() == "q" && modifiers.control() {
+                        iced::window::latest().and_then(iced::window::close)
+                    } else {
+                        Task::none()
+                    }
+                }
+                _ => Task::none(),
+            },
         }
     }
 
