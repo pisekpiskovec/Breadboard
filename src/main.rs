@@ -2,9 +2,9 @@ mod config;
 mod memory;
 mod port;
 mod tests;
-mod ui;
+mod gui;
 
-use crate::ui::UInterface;
+use crate::gui::UInterface;
 
 fn main() -> iced::Result {
     iced::application(UInterface::new, UInterface::update, UInterface::view)
