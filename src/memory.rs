@@ -415,11 +415,11 @@ impl ATmemory {
                 value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
             }),
             x if (x & 0xFC00) == 0xF000 => Ok(Instruction::BRBS {
-                offset: ((x & 0x1FC) >> 3) as i8,
+                offset: (((((x >> 3) & 0x7F) << 1) as i8) >> 1),
                 bit: (x & 0b111) as u8,
             }),
             x if (x & 0xFC00) == 0xF400 => Ok(Instruction::BRBC {
-                offset: ((x & 0x1FC) >> 3) as i8,
+                offset: (((((x >> 3) & 0x7F) << 1) as i8) >> 1),
                 bit: (x & 0b111) as u8,
             }),
             _ => Err(String::from("Unable to decode instruction")),
@@ -583,7 +583,7 @@ impl ATmemory {
             }
             Instruction::BRBC { offset, bit } => {
                 if self.sreg() >> bit == 0 {
-                    self.pc += (offset + 1) as u16;
+                    self.pc = (self.pc as i32 + offset as i32 + 1) as u16;
                 } else {
                     self.pc += 1;
                 }
@@ -591,7 +591,7 @@ impl ATmemory {
             }
             Instruction::BRBS { offset, bit } => {
                 if self.sreg() >> bit == 1 {
-                    self.pc += (offset + 1) as u16;
+                    self.pc = (self.pc as i32 + offset as i32 + 1) as u16;
                 } else {
                     self.pc += 1;
                 }
