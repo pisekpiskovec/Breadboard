@@ -16,7 +16,7 @@ use crate::config::{Config, DisplayBase};
 use crate::memory::ATmemory;
 
 #[derive(Debug)]
-pub struct UInterface {
+pub struct GUInterface {
     cpu: ATmemory,
     display_base_registers: DisplayBase,
     display_base_stack: DisplayBase,
@@ -64,7 +64,7 @@ pub enum Message {
     ThemeChanged(Mode),
 }
 
-impl UInterface {
+impl GUInterface {
     fn byte_to_ascii(byte: u8) -> char {
         let range = 32..126;
         if range.contains(&byte) {
@@ -294,10 +294,10 @@ impl UInterface {
         }
     }
 
-    pub fn update(state: &mut UInterface, message: Message) -> Task<Message> {
+    pub fn update(state: &mut GUInterface, message: Message) -> Task<Message> {
         match message {
             Message::ThemeChanged(mode) => {
-                state.theme = UInterface::mode_to_theme(mode);
+                state.theme = GUInterface::mode_to_theme(mode);
                 state.theme_mode = mode;
                 Task::none()
             }

@@ -4,12 +4,12 @@ mod port;
 mod tests;
 mod gui;
 
-use crate::gui::UInterface;
+use crate::gui::GUInterface;
 
 fn main() -> iced::Result {
-    iced::application(UInterface::new, UInterface::update, UInterface::view)
+    iced::application(GUInterface::new, GUInterface::update, GUInterface::view)
         .title("Breadboard")
-        .theme(UInterface::theme)
-        .subscription(UInterface::subscription)
+        .theme(GUInterface::theme)
+        .subscription(GUInterface::subscription)
         .run()
 }
