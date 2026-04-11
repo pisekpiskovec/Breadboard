@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 use std::net::TcpStream;
 use wire::{Message, CMD_REQUEST, CMD_RESET, CMD_RESPONSE, CMD_WRITE, PROTOCOL_VERSION};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ATport {
     reset_hold: bool,
     tcp_connection: Option<TcpStream>,
