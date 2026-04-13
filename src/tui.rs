@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{config::Config, memory::ATmemory, tui::{flash::FlashWindow, status::StatusWindow}};
 
 mod flash;
@@ -19,10 +21,13 @@ impl TUInterface {
 
     pub fn init() -> appcui::prelude::App {
         let mut app = appcui::system::App::new().title("Breadboard").build().unwrap();
-        let mut interface = Self::new();
+        let interface = Self::new();
 
-        app.add_window(FlashWindow::new(interface.config, interface.cpu));
-        app.add_window(StatusWindow::new(interface.cpu));
+        let cpu_shared = Rc::new(RefCell::new(interface.cpu));
+        let config_shared = Rc::new(RefCell::new(interface.config));
+
+        app.add_window(FlashWindow::new(Rc::clone(&config_shared), Rc::clone(&cpu_shared)));
+        app.add_window(StatusWindow::new(Rc::clone(&cpu_shared)));
 
         app
     }

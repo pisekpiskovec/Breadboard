@@ -1,21 +1,22 @@
+use std::{cell::RefCell, rc::Rc};
+
 use appcui::prelude::{Label, Window};
 
 #[Window]
 pub struct StatusWindow {
-    cpu: crate::memory::ATmemory,
 }
 
 impl StatusWindow {
-    pub fn new(cpu: crate::memory::ATmemory) -> Self {
-        let pc = cpu.pc();
-        let sp = cpu.sp();
-        let xp = cpu.xp();
-        let yp = cpu.yp();
-        let zp = cpu.zp();
-        let cycle_cnt = cpu.cycle_cnt();
+    pub fn new(cpu: Rc<RefCell<crate::memory::ATmemory>>) -> Self {
+        let cpu_ref = cpu.borrow();
+        let pc = cpu_ref.pc();
+        let sp = cpu_ref.sp();
+        let xp = cpu_ref.xp();
+        let yp = cpu_ref.yp();
+        let zp = cpu_ref.zp();
+        let cycle_cnt = cpu_ref.cycle_cnt();
         let mut win = Self {
             base: window!("'Status',a:c,w:10,h:30,flags:sizeable"),
-            cpu,
         };
         win.add(Label::new(
             format!("Program Counter | {:#08X}", pc).as_str(),
