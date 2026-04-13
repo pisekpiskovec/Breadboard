@@ -9,9 +9,12 @@ pub struct FlashWindow {
 }
 
 impl FlashWindow {
-    pub fn new(config: Rc<RefCell<crate::config::Config>>, cpu: Rc<RefCell<crate::memory::ATmemory>>) -> Self {
+    pub fn new(
+        config: Rc<RefCell<crate::config::Config>>,
+        cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    ) -> Self {
         let mut win = Self {
-            base: window!("'Flash',a:c,w:30,h:30,flags:sizeable"),
+            base: window!("'Flash',a:c,w:32,h:32,flags:sizeable"),
             config,
             cpu,
         };
@@ -33,7 +36,6 @@ impl FlashWindow {
     }
 
     fn format_memory_row(&self, addr: usize) -> String {
-        eprintln!("Formatting row at addr: {:#06X}, PC: {:#06X}", addr, self.cpu.borrow().pc());
         let mut row = String::new();
 
         row.push_str(&format!("{:04X}: ", addr));
@@ -50,9 +52,12 @@ impl FlashWindow {
 
         let memory_bytes_per_row = window.config.borrow().display.memory_bytes_per_row;
 
-        for addr in (start..end).step_by(memory_bytes_per_row) {
+        for (idx, addr) in (start..end).step_by(memory_bytes_per_row).enumerate() {
             let row = window.format_memory_row(addr);
-            window.add(Label::new(&row, LayoutBuilder::new().alignment(Alignment::TopLeft).build()));
+            window.add(Label::new(
+                &row,
+                LayoutBuilder::new().x(0).y(idx as u32).width(32).build(),
+            ));
         }
     }
 }
