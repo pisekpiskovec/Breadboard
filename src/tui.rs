@@ -3,11 +3,12 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     config::Config,
     memory::ATmemory,
-    tui::{flash::FlashWindow, status::StatusWindow},
+    tui::{flash::FlashWindow, register::RegisterWindow, status::StatusWindow},
 };
 
 mod ascii;
 mod flash;
+mod register;
 mod status;
 
 pub struct TUInterface {
@@ -40,6 +41,7 @@ impl TUInterface {
             Rc::clone(&cpu_shared),
         ));
         app.add_window(StatusWindow::new(Rc::clone(&cpu_shared)));
+        app.add_window(RegisterWindow::new(Rc::clone(&cpu_shared)));
 
         app
     }
