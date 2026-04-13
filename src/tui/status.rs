@@ -15,7 +15,7 @@ impl StatusWindow {
         let zp = cpu_ref.zp();
         let cycle_cnt = cpu_ref.cycle_cnt();
         let mut win = Self {
-            base: window!("'Status',a:c,w:32,h:8"),
+            base: window!("'Status',a:tl,w:32,h:8"),
         };
         win.add(Label::new(
             format!("Program Counter | {:#08X}", pc).as_str(),

@@ -8,7 +8,7 @@ pub struct RegisterWindow {}
 impl RegisterWindow {
     pub fn new(cpu: Rc<RefCell<crate::memory::ATmemory>>) -> Self {
         let mut win = Self {
-            base: window!("'Registers',a:l,w:31,h:34"),
+            base: window!("'Registers',a:bl,w:31,h:34"),
         };
 
         let cpu_ref = cpu.borrow();
