@@ -2,10 +2,12 @@ use std::{cell::RefCell, rc::Rc};
 
 use appcui::prelude::{Label, Window};
 
-#[Window]
+#[Window(events = [MenuEvents, AppBarEvents], commands=[OpenBin, OpenHex, ShowAscii])]
 pub struct FlashWindow {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    menu_file: Handle<appbar::MenuButton>,
+    menu_view: Handle<appbar::MenuButton>,
 }
 
 impl FlashWindow {
@@ -17,8 +19,44 @@ impl FlashWindow {
             base: window!("'Flash',a:c,w:32,h:32,flags:sizeable"),
             config,
             cpu,
+            menu_file: Handle::None,
+            menu_view: Handle::None,
         };
         Self::render_flash_memory(&mut win);
+
+        // File menu
+        let mut menu_file = Menu::new();
+        menu_file.add(menu::Command::new(
+            "Open .&bin",
+            key!("Alt+O"),
+            flashwindow::Commands::OpenBin,
+        ));
+        menu_file.add(menu::Command::new(
+            "Open .&hex",
+            key!("Ctrl+O"),
+            flashwindow::Commands::OpenHex,
+        ));
+        win.menu_file = win.appbar().add(appbar::MenuButton::new(
+            "&File",
+            menu_file,
+            1,
+            appbar::Side::Left,
+        ));
+
+        // View menu
+        let mut menu_view = Menu::new();
+        menu_view.add(menu::Command::new(
+            "Show Flash as &ASCII",
+            Key::None,
+            flashwindow::Commands::ShowAscii,
+        ));
+        win.menu_view = win.appbar().add(appbar::MenuButton::new(
+            "&View",
+            menu_view,
+            2,
+            appbar::Side::Left,
+        ));
+
         win
     }
 
@@ -59,5 +97,34 @@ impl FlashWindow {
                 LayoutBuilder::new().x(0).y(idx as u32).width(32).build(),
             ));
         }
+    }
+}
+
+impl MenuEvents for FlashWindow {
+    fn on_command(
+        &mut self,
+        menu: Handle<Menu>,
+        item: Handle<menu::Command>,
+        command: flashwindow::Commands,
+    ) {
+        match command {
+            cmd if cmd == flashwindow::Commands::OpenBin => {
+                self.cpu.borrow_mut().load_bin("/home/pisek/Obrázky/2P.png");
+            }
+            cmd if cmd == flashwindow::Commands::OpenHex => {
+                self.cpu
+                    .borrow_mut()
+                    .load_bin("/home/pisek/Projekty/Rust/Breadboard/tests/template-tst/test.hex");
+            }
+            cmd if cmd == flashwindow::Commands::ShowAscii => {}
+            _ => {}
+        }
+    }
+}
+
+impl AppBarEvents for FlashWindow {
+    fn on_update(&self, appbar: &mut AppBar) {
+        appbar.show(self.menu_file);
+        appbar.show(self.menu_view);
     }
 }

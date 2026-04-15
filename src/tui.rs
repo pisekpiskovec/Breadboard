@@ -28,6 +28,8 @@ impl TUInterface {
     pub fn init() -> appcui::prelude::App {
         let mut app = appcui::system::App::new()
             .title("Breadboard")
+            .app_bar()
+            .command_bar()
             .build()
             .unwrap();
         let mut interface = Self::new();
