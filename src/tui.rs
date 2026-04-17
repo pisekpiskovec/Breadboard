@@ -3,10 +3,11 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     config::Config,
     memory::ATmemory,
-    tui::{flash::FlashWindow, register::RegisterWindow, status::StatusWindow},
+    tui::{desktop::TDesktop, flash::FlashWindow, register::RegisterWindow, status::StatusWindow},
 };
 
 mod ascii;
+mod desktop;
 mod flash;
 mod register;
 mod status;
@@ -26,17 +27,19 @@ impl TUInterface {
     }
 
     pub fn init() -> appcui::prelude::App {
-        let mut app = appcui::system::App::new()
-            .title("Breadboard")
-            .app_bar()
-            .command_bar()
-            .build()
-            .unwrap();
         let mut interface = Self::new();
         interface.cpu.load_flash_from_vec(vec![0xFF]).ok();
 
         let cpu_shared = Rc::new(RefCell::new(interface.cpu));
         let config_shared = Rc::new(RefCell::new(interface.config));
+
+        let mut app = appcui::system::App::new()
+            .title("Breadboard")
+            .app_bar()
+            .desktop(TDesktop::new(Rc::clone(&cpu_shared)))
+            .command_bar()
+            .build()
+            .unwrap();
 
         app.add_window(FlashWindow::new(
             Rc::clone(&config_shared),
