@@ -27,8 +27,7 @@ impl TUInterface {
     }
 
     pub fn init() -> appcui::prelude::App {
-        let mut interface = Self::new();
-        interface.cpu.load_flash_from_vec(vec![0xFF]).ok();
+        let interface = Self::new();
 
         let cpu_shared = Rc::new(RefCell::new(interface.cpu));
         let config_shared = Rc::new(RefCell::new(interface.config));
@@ -36,7 +35,10 @@ impl TUInterface {
         let mut app = appcui::system::App::new()
             .title("Breadboard")
             .app_bar()
-            .desktop(TDesktop::new(Rc::clone(&cpu_shared)))
+            .desktop(TDesktop::new(
+                Rc::clone(&config_shared),
+                Rc::clone(&cpu_shared),
+            ))
             .command_bar()
             .build()
             .unwrap();

@@ -2,16 +2,27 @@ use std::{cell::RefCell, rc::Rc};
 
 use appcui::prelude::Desktop;
 
-#[Desktop(events = [MenuEvents, AppBarEvents], commands=[OpenBin, OpenHex, ShowAscii])]
+use crate::tui::ascii::AsciiFlashWindow;
+
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents], commands=[OpenBin, OpenHex, ShowAscii])]
 pub struct TDesktop {
+    config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    menu_file: Handle<appbar::MenuButton>,
+    menu_view: Handle<appbar::MenuButton>,
 }
 
 impl TDesktop {
-    pub fn new(cpu: Rc<RefCell<crate::memory::ATmemory>>) -> Self {
+    pub fn new(
+        config: Rc<RefCell<crate::config::Config>>,
+        cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    ) -> Self {
         Self {
             base: Desktop::new(),
+            config,
             cpu,
+            menu_file: Handle::None,
+            menu_view: Handle::None,
         }
     }
 }
@@ -19,8 +30,8 @@ impl TDesktop {
 impl MenuEvents for TDesktop {
     fn on_command(
         &mut self,
-        menu: Handle<Menu>,
-        item: Handle<menu::Command>,
+        _menu: Handle<Menu>,
+        _item: Handle<menu::Command>,
         command: tdesktop::Commands,
     ) {
         match command {
@@ -31,15 +42,25 @@ impl MenuEvents for TDesktop {
                 let _ = self
                     .cpu
                     .borrow_mut()
-                    .load_bin("/home/pisek/Projekty/Rust/Breadboard/tests/template-tst/test.hex");
+                    .load_hex("/home/pisek/Projekty/Rust/Breadboard/tests/template-tst/test.hex");
             }
-            tdesktop::Commands::ShowAscii => {}
+            tdesktop::Commands::ShowAscii => {
+                let ascii = AsciiFlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
+                self.add_window(ascii);
+            }
         }
     }
 }
 
 impl AppBarEvents for TDesktop {
     fn on_update(&self, appbar: &mut AppBar) {
+        appbar.show(self.menu_file);
+        appbar.show(self.menu_view);
+    }
+}
+
+impl DesktopEvents for TDesktop {
+    fn on_start(&mut self) {
         // File menu
         let mut menu_file = Menu::new();
         menu_file.add(menu::Command::new(
@@ -52,7 +73,7 @@ impl AppBarEvents for TDesktop {
             key!("Ctrl+O"),
             tdesktop::Commands::OpenHex,
         ));
-        appbar.add(appbar::MenuButton::new(
+        self.menu_file = self.appbar().add(appbar::MenuButton::new(
             "&File",
             menu_file,
             1,
@@ -66,7 +87,7 @@ impl AppBarEvents for TDesktop {
             Key::None,
             tdesktop::Commands::ShowAscii,
         ));
-        appbar.add(appbar::MenuButton::new(
+        self.menu_view = self.appbar().add(appbar::MenuButton::new(
             "&View",
             menu_view,
             2,
