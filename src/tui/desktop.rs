@@ -4,12 +4,14 @@ use appcui::prelude::Desktop;
 
 use crate::tui::ascii::AsciiFlashWindow;
 
-#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents], commands=[OpenBin, OpenHex, ShowAscii])]
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowLicense, CPUStep, CPUAuto, CPUReset, CPURestart, AppExit])]
 pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
     menu_file: Handle<appbar::MenuButton>,
+    menu_edit: Handle<appbar::MenuButton>,
     menu_view: Handle<appbar::MenuButton>,
+    menu_help: Handle<appbar::MenuButton>,
 }
 
 impl TDesktop {
@@ -22,7 +24,9 @@ impl TDesktop {
             config,
             cpu,
             menu_file: Handle::None,
+            menu_edit: Handle::None,
             menu_view: Handle::None,
+            menu_help: Handle::None,
         }
     }
 }
@@ -87,6 +91,13 @@ impl MenuEvents for TDesktop {
                 let ascii = AsciiFlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
                 self.add_window(ascii);
             }
+            tdesktop::Commands::ShowAbout => todo!(),
+            tdesktop::Commands::ShowLicense => todo!(),
+            tdesktop::Commands::CPUStep => todo!(),
+            tdesktop::Commands::CPUAuto => todo!(),
+            tdesktop::Commands::CPUReset => todo!(),
+            tdesktop::Commands::CPURestart => todo!(),
+            tdesktop::Commands::AppExit => self.close(),
         }
     }
 }
@@ -94,7 +105,9 @@ impl MenuEvents for TDesktop {
 impl AppBarEvents for TDesktop {
     fn on_update(&self, appbar: &mut AppBar) {
         appbar.show(self.menu_file);
+        appbar.show(self.menu_edit);
         appbar.show(self.menu_view);
+        appbar.show(self.menu_help);
     }
 }
 
@@ -112,10 +125,45 @@ impl DesktopEvents for TDesktop {
             key!("Ctrl+O"),
             tdesktop::Commands::OpenHex,
         ));
+        menu_file.add(menu::Separator::new());
+        menu_file.add(menu::Command::new(
+            "E&xit",
+            key!("Ctrl+Q"),
+            tdesktop::Commands::AppExit,
+        ));
         self.menu_file = self.appbar().add(appbar::MenuButton::new(
             "&File",
             menu_file,
             1,
+            appbar::Side::Left,
+        ));
+
+        // Edit menu
+        let mut menu_edit = Menu::new();
+        menu_edit.add(menu::Command::new(
+            "&Step",
+            Key::None,
+            tdesktop::Commands::CPUStep,
+        ));
+        menu_edit.add(menu::Command::new(
+            "&Auto Run",
+            Key::None,
+            tdesktop::Commands::CPUAuto,
+        ));
+        menu_edit.add(menu::Command::new(
+            "&Reset",
+            Key::None,
+            tdesktop::Commands::CPUReset,
+        ));
+        menu_edit.add(menu::Command::new(
+            "Restart",
+            Key::None,
+            tdesktop::Commands::CPURestart,
+        ));
+        self.menu_edit = self.appbar().add(appbar::MenuButton::new(
+            "&Edit",
+            menu_edit,
+            2,
             appbar::Side::Left,
         ));
 
@@ -129,7 +177,26 @@ impl DesktopEvents for TDesktop {
         self.menu_view = self.appbar().add(appbar::MenuButton::new(
             "&View",
             menu_view,
-            2,
+            3,
+            appbar::Side::Left,
+        ));
+
+        // Help menu
+        let mut menu_help = Menu::new();
+        menu_help.add(menu::Command::new(
+            "About Breadboard",
+            Key::None,
+            tdesktop::Commands::ShowAbout,
+        ));
+        menu_help.add(menu::Command::new(
+            "License",
+            Key::None,
+            tdesktop::Commands::ShowLicense,
+        ));
+        self.menu_help = self.appbar().add(appbar::MenuButton::new(
+            "&Help",
+            menu_help,
+            4,
             appbar::Side::Left,
         ));
     }
