@@ -4,10 +4,11 @@ use appcui::prelude::Desktop;
 
 use crate::tui::ascii::AsciiFlashWindow;
 
-#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowLicense, CPUStep, CPUAuto, CPUReset, CPURestart, AppExit])]
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowLicense, CPUStep, CPUAuto, CPUReset, AppExit])]
 pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    cpu_auto_step: bool,
     menu_file: Handle<appbar::MenuButton>,
     menu_edit: Handle<appbar::MenuButton>,
     menu_view: Handle<appbar::MenuButton>,
@@ -23,6 +24,7 @@ impl TDesktop {
             base: Desktop::new(),
             config,
             cpu,
+            cpu_auto_step: false,
             menu_file: Handle::None,
             menu_edit: Handle::None,
             menu_view: Handle::None,
@@ -93,10 +95,16 @@ impl MenuEvents for TDesktop {
             }
             tdesktop::Commands::ShowAbout => todo!(),
             tdesktop::Commands::ShowLicense => todo!(),
-            tdesktop::Commands::CPUStep => todo!(),
-            tdesktop::Commands::CPUAuto => todo!(),
-            tdesktop::Commands::CPUReset => todo!(),
-            tdesktop::Commands::CPURestart => todo!(),
+            tdesktop::Commands::CPUStep => match self.cpu.borrow_mut().step() {
+                Ok(_) => {}
+                Err(e) => {
+                    log!("ERROR", "Failed to step program: {}", e)
+                }
+            },
+            tdesktop::Commands::CPUAuto => {
+                self.cpu_auto_step = !self.cpu_auto_step;
+            }
+            tdesktop::Commands::CPUReset => self.cpu.borrow_mut().reset(),
             tdesktop::Commands::AppExit => self.close(),
         }
     }
@@ -142,23 +150,19 @@ impl DesktopEvents for TDesktop {
         let mut menu_edit = Menu::new();
         menu_edit.add(menu::Command::new(
             "&Step",
-            Key::None,
+            key!("F8"),
             tdesktop::Commands::CPUStep,
         ));
-        menu_edit.add(menu::Command::new(
+        menu_edit.add(menu::CheckBox::new(
             "&Auto Run",
-            Key::None,
+            key!("F5"),
             tdesktop::Commands::CPUAuto,
+            self.cpu_auto_step,
         ));
         menu_edit.add(menu::Command::new(
             "&Reset",
-            Key::None,
+            key!("Ctrl+R"),
             tdesktop::Commands::CPUReset,
-        ));
-        menu_edit.add(menu::Command::new(
-            "Restart",
-            Key::None,
-            tdesktop::Commands::CPURestart,
         ));
         self.menu_edit = self.appbar().add(appbar::MenuButton::new(
             "&Edit",
@@ -184,12 +188,12 @@ impl DesktopEvents for TDesktop {
         // Help menu
         let mut menu_help = Menu::new();
         menu_help.add(menu::Command::new(
-            "About Breadboard",
+            "&About Breadboard",
             Key::None,
             tdesktop::Commands::ShowAbout,
         ));
         menu_help.add(menu::Command::new(
-            "License",
+            "&License",
             Key::None,
             tdesktop::Commands::ShowLicense,
         ));
