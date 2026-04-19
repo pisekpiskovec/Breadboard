@@ -36,13 +36,36 @@ impl MenuEvents for TDesktop {
     ) {
         match command {
             tdesktop::Commands::OpenBin => {
-                let _ = self.cpu.borrow_mut().load_bin("/home/pisek/Obrázky/2P.png");
+                let file = dialogs::open(
+                    "Open binary file",
+                    "",
+                    dialogs::Location::Last,
+                    Some("Binaries = [bin]"),
+                    dialogs::OpenFileDialogFlags::Icons
+                        | dialogs::OpenFileDialogFlags::CheckIfFileExists,
+                );
+
+                if let Some(path) = file {
+                    if let Some(path_str) = path.to_str() {
+                        let _ = self.cpu.borrow_mut().load_bin(path_str);
+                    }
+                }
             }
             tdesktop::Commands::OpenHex => {
-                let _ = self
-                    .cpu
-                    .borrow_mut()
-                    .load_hex("/home/pisek/Projekty/Rust/Breadboard/tests/template-tst/test.hex");
+                let file = dialogs::open(
+                    "Open hex file",
+                    "",
+                    dialogs::Location::Last,
+                    Some("Hex file = [hex]"),
+                    dialogs::OpenFileDialogFlags::Icons
+                        | dialogs::OpenFileDialogFlags::CheckIfFileExists,
+                );
+
+                if let Some(path) = file {
+                    if let Some(path_str) = path.to_str() {
+                        let _ = self.cpu.borrow_mut().load_hex(path_str);
+                    }
+                }
             }
             tdesktop::Commands::ShowAscii => {
                 let ascii = AsciiFlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
