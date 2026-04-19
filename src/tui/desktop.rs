@@ -45,10 +45,10 @@ impl MenuEvents for TDesktop {
                         | dialogs::OpenFileDialogFlags::CheckIfFileExists,
                 );
 
-                if let Some(path) = file {
-                    if let Some(path_str) = path.to_str() {
-                        let _ = self.cpu.borrow_mut().load_bin(path_str);
-                    }
+                if let Some(path) = file
+                    && let Some(path_str) = path.to_str()
+                {
+                    let _ = self.cpu.borrow_mut().load_bin(path_str);
                 }
             }
             tdesktop::Commands::OpenHex => {
@@ -61,10 +61,10 @@ impl MenuEvents for TDesktop {
                         | dialogs::OpenFileDialogFlags::CheckIfFileExists,
                 );
 
-                if let Some(path) = file {
-                    if let Some(path_str) = path.to_str() {
-                        let _ = self.cpu.borrow_mut().load_hex(path_str);
-                    }
+                if let Some(path) = file
+                    && let Some(path_str) = path.to_str()
+                {
+                    let _ = self.cpu.borrow_mut().load_hex(path_str);
                 }
             }
             tdesktop::Commands::ShowAscii => {
