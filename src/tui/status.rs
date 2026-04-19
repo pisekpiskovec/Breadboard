@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use appcui::prelude::{Label, Window};
 
-#[Window]
+#[Window(events=WindowEvents)]
 pub struct StatusWindow {}
 
 impl StatusWindow {
@@ -15,8 +15,9 @@ impl StatusWindow {
         let zp = cpu_ref.zp();
         let cycle_cnt = cpu_ref.cycle_cnt();
         let mut win = Self {
-            base: window!("'Status',a:tl,w:32,h:8"),
+            base: window!("'Status',x:0,y:1,w:32,h:8,flags:NoCloseButton"),
         };
+        win.set_hotkey(key!("Alt+S"));
         win.add(Label::new(
             format!("Program Counter | {:#08X}", pc).as_str(),
             LayoutBuilder::new().x(0).y(0).width(32).build(),
@@ -42,5 +43,11 @@ impl StatusWindow {
             LayoutBuilder::new().x(0).y(5).width(32).build(),
         ));
         win
+    }
+}
+
+impl WindowEvents for StatusWindow {
+    fn on_cancel(&mut self) -> ActionRequest {
+        ActionRequest::Deny
     }
 }
