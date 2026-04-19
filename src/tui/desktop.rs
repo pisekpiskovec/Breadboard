@@ -48,7 +48,15 @@ impl MenuEvents for TDesktop {
                 if let Some(path) = file
                     && let Some(path_str) = path.to_str()
                 {
-                    let _ = self.cpu.borrow_mut().load_bin(path_str);
+                    log!("INFO", "Loading: {}", path_str);
+                    match self.cpu.borrow_mut().load_bin(path_str) {
+                        Ok(_) => {
+                            log!("INFO", "File loaded succesfully")
+                        }
+                        Err(e) => {
+                            log!("ERROR", "Failed to load file: {}", e)
+                        }
+                    }
                 }
             }
             tdesktop::Commands::OpenHex => {
@@ -64,7 +72,15 @@ impl MenuEvents for TDesktop {
                 if let Some(path) = file
                     && let Some(path_str) = path.to_str()
                 {
-                    let _ = self.cpu.borrow_mut().load_hex(path_str);
+                    log!("INFO", "Loading: {}", path_str);
+                    match self.cpu.borrow_mut().load_hex(path_str) {
+                        Ok(_) => {
+                            log!("INFO", "File loaded succesfully")
+                        }
+                        Err(e) => {
+                            log!("ERROR", "Failed to load file: {}", e)
+                        }
+                    }
                 }
             }
             tdesktop::Commands::ShowAscii => {
