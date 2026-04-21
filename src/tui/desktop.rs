@@ -55,6 +55,7 @@ impl MenuEvents for TDesktop {
                     && let Some(path_str) = path.to_str()
                 {
                     log!("INFO", "Loading: {}", path_str);
+                    self.cpu.borrow_mut().reset();
                     match self.cpu.borrow_mut().load_bin(path_str) {
                         Ok(_) => {
                             log!("INFO", "File loaded succesfully")
@@ -79,6 +80,7 @@ impl MenuEvents for TDesktop {
                     && let Some(path_str) = path.to_str()
                 {
                     log!("INFO", "Loading: {}", path_str);
+                    self.cpu.borrow_mut().reset();
                     match self.cpu.borrow_mut().load_hex(path_str) {
                         Ok(_) => {
                             log!("INFO", "File loaded succesfully")
