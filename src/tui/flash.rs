@@ -1,11 +1,12 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use appcui::prelude::{Label, Window};
 
-#[Window]
+#[Window(events = TimerEvents)]
 pub struct FlashWindow {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    pub flash: Vec<Handle<Label>>,
 }
 
 impl FlashWindow {
@@ -13,12 +14,35 @@ impl FlashWindow {
         config: Rc<RefCell<crate::config::Config>>,
         cpu: Rc<RefCell<crate::memory::ATmemory>>,
     ) -> Self {
+        let max_window: usize = config.borrow().display.memory_bytes_per_column * 2;
+        let max_rows: usize = max_window / config.borrow().display.memory_bytes_per_row;
         let mut win = Self {
-            base: window!("'Flash',a:c,w:32,h:32,flags:sizeable"),
+            base: Window::new(
+                "Flash",
+                LayoutBuilder::new()
+                    .alignment(Alignment::Center)
+                    .width(32)
+                    .height((max_rows as u8) + 2)
+                    .build(),
+                window::Flags::Sizeable,
+            ),
             config,
             cpu,
+            flash: vec![Handle::None; max_rows],
         };
+
+        for byte in 0..win.flash.len() {
+            win.flash[byte] = win.add(Label::new(
+                "",
+                LayoutBuilder::new().x(0).y(byte as u8).width(32).build(),
+            ));
+        }
+
         Self::render_flash_memory(&mut win);
+
+        if let Some(timer) = win.timer() {
+            timer.start(Duration::from_millis(100));
+        }
 
         win
     }
@@ -48,17 +72,24 @@ impl FlashWindow {
         row
     }
 
-    fn render_flash_memory(window: &mut FlashWindow) {
-        let (start, end) = window.get_memory_window_boundary();
+    fn render_flash_memory(&mut self) {
+        let (start, end) = self.get_memory_window_boundary();
 
-        let memory_bytes_per_row = window.config.borrow().display.memory_bytes_per_row;
+        let memory_bytes_per_row = self.config.borrow().display.memory_bytes_per_row;
 
         for (idx, addr) in (start..end).step_by(memory_bytes_per_row).enumerate() {
-            let row = window.format_memory_row(addr);
-            window.add(Label::new(
-                &row,
-                LayoutBuilder::new().x(0).y(idx as u32).width(32).build(),
-            ));
+            let row = self.format_memory_row(addr);
+            let h = self.flash[idx];
+            if let Some(lb) = self.control_mut(h) {
+                lb.set_caption(&row);
+            }
         }
+    }
+}
+
+impl TimerEvents for FlashWindow {
+    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
+        Self::render_flash_memory(self);
+        EventProcessStatus::Processed
     }
 }
