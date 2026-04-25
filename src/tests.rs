@@ -17,9 +17,9 @@ fn tst_ldi() {
 #[test]
 fn tst_add() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r16: u8 = rng.gen_range(0..=255);
-    let value_r17: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r16: u8 = rng.random_range(0..=255);
+    let value_r17: u8 = rng.random_range(0..=255);
     cpu.write_to_register(16, value_r16);
     cpu.write_to_register(17, value_r17);
     // add r16, r17
@@ -34,9 +34,9 @@ fn tst_add() {
 #[test]
 fn tst_sub() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r16: u8 = rng.gen_range(0..=255);
-    let value_r17: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r16: u8 = rng.random_range(0..=255);
+    let value_r17: u8 = rng.random_range(0..=255);
     cpu.write_to_register(16, value_r16);
     cpu.write_to_register(17, value_r17);
     // sub r16, r17
@@ -112,9 +112,9 @@ fn tst_pop() {
 /// Logical AND test
 fn tst_and() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r16: u8 = rng.gen_range(0..=255);
-    let value_r17: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r16: u8 = rng.random_range(0..=255);
+    let value_r17: u8 = rng.random_range(0..=255);
     cpu.write_to_register(16, value_r16);
     cpu.write_to_register(17, value_r17);
 
@@ -131,9 +131,9 @@ fn tst_and() {
 /// Logical EXCLUSIVE OR test
 fn tst_xor() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r16: u8 = rng.gen_range(0..=255);
-    let value_r17: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r16: u8 = rng.random_range(0..=255);
+    let value_r17: u8 = rng.random_range(0..=255);
     cpu.write_to_register(16, value_r16);
     cpu.write_to_register(17, value_r17);
 
@@ -150,9 +150,9 @@ fn tst_xor() {
 /// Logical OR test
 fn tst_or() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r16: u8 = rng.gen_range(0..=255);
-    let value_r17: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r16: u8 = rng.random_range(0..=255);
+    let value_r17: u8 = rng.random_range(0..=255);
     cpu.write_to_register(16, value_r16);
     cpu.write_to_register(17, value_r17);
 
@@ -169,8 +169,8 @@ fn tst_or() {
 /// Logical AND with Immediate test
 fn tst_andi() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r16: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r16: u8 = rng.random_range(0..=255);
     cpu.write_to_register(16, value_r16);
 
     // andi r16, 29
@@ -186,8 +186,8 @@ fn tst_andi() {
 /// Logical OR with Immediate test
 fn tst_ori() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r16: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r16: u8 = rng.random_range(0..=255);
     cpu.write_to_register(16, value_r16);
 
     // ori r16, 29
@@ -236,8 +236,8 @@ fn tst_adiw() {
 #[test]
 fn tst_asr() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r16: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r16: u8 = rng.random_range(0..=255);
     let c_flag = value_r16 & 0x01;
     cpu.write_to_register(16, value_r16);
 
@@ -253,8 +253,8 @@ fn tst_asr() {
 #[test]
 fn tst_out() {
     let mut cpu = ATmemory::init();
-    let mut rng = rand::thread_rng();
-    let value_r21: u8 = rng.gen_range(0..=255);
+    let mut rng = rand::rng();
+    let value_r21: u8 = rng.random_range(0..=255);
     cpu.write_to_register(21, value_r21);
 
     // out SPL, r21
