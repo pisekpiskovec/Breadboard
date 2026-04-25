@@ -6,7 +6,7 @@ use appcui::prelude::{Label, Window};
 pub struct FlashWindow {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
-    pub flash: Vec<Handle<Label>>,
+    flash_lb: Vec<Handle<Label>>,
 }
 
 impl FlashWindow {
@@ -15,7 +15,9 @@ impl FlashWindow {
         cpu: Rc<RefCell<crate::memory::ATmemory>>,
     ) -> Self {
         let max_window: usize = config.borrow().display.memory_bytes_per_column * 2;
-        let max_rows: usize = max_window / config.borrow().display.memory_bytes_per_row;
+        let bytes_per_row: usize = config.borrow().display.memory_bytes_per_row;
+        let max_rows: usize = (max_window / bytes_per_row) + 1;
+
         let mut win = Self {
             base: Window::new(
                 "Flash",
@@ -28,11 +30,11 @@ impl FlashWindow {
             ),
             config,
             cpu,
-            flash: vec![Handle::None; max_rows],
+            flash_lb: vec![Handle::None; max_rows],
         };
 
-        for byte in 0..win.flash.len() {
-            win.flash[byte] = win.add(Label::new(
+        for byte in 0..win.flash_lb.len() {
+            win.flash_lb[byte] = win.add(Label::new(
                 "",
                 LayoutBuilder::new().x(0).y(byte as u8).width(32).build(),
             ));
@@ -79,7 +81,7 @@ impl FlashWindow {
 
         for (idx, addr) in (start..end).step_by(memory_bytes_per_row).enumerate() {
             let row = self.format_memory_row(addr);
-            let h = self.flash[idx];
+            let h = self.flash_lb[idx];
             if let Some(lb) = self.control_mut(h) {
                 lb.set_caption(&row);
             }
@@ -89,7 +91,28 @@ impl FlashWindow {
 
 impl TimerEvents for FlashWindow {
     fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
-        Self::render_flash_memory(self);
+        let (start, end) = self.get_memory_window_boundary();
+        let bytes_per_row = self.config.borrow().display.memory_bytes_per_row;
+
+        let mut label_idx = 0;
+        for addr in (start..end).step_by(bytes_per_row) {
+            let row_text = self.format_memory_row(addr);
+            if label_idx < self.flash_lb.len() {
+                let h = self.flash_lb[label_idx];
+                if let Some(lb) = self.control_mut(h) {
+                    lb.set_caption(&row_text);
+                }
+                label_idx += 1;
+            }
+        }
+
+        while label_idx < self.flash_lb.len() {
+            let h = self.flash_lb[label_idx];
+            if let Some(lb) = self.control_mut(h) {
+                lb.set_caption("");
+            }
+            label_idx += 1;
+        }
         EventProcessStatus::Processed
     }
 }
