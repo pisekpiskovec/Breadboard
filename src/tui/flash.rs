@@ -76,22 +76,6 @@ impl FlashWindow {
 
     fn render_flash_memory(&mut self) {
         let (start, end) = self.get_memory_window_boundary();
-
-        let memory_bytes_per_row = self.config.borrow().display.memory_bytes_per_row;
-
-        for (idx, addr) in (start..end).step_by(memory_bytes_per_row).enumerate() {
-            let row = self.format_memory_row(addr);
-            let h = self.flash_lb[idx];
-            if let Some(lb) = self.control_mut(h) {
-                lb.set_caption(&row);
-            }
-        }
-    }
-}
-
-impl TimerEvents for FlashWindow {
-    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
-        let (start, end) = self.get_memory_window_boundary();
         let bytes_per_row = self.config.borrow().display.memory_bytes_per_row;
 
         let mut label_idx = 0;
@@ -113,6 +97,12 @@ impl TimerEvents for FlashWindow {
             }
             label_idx += 1;
         }
+    }
+}
+
+impl TimerEvents for FlashWindow {
+    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
+        Self::render_flash_memory(self);
         EventProcessStatus::Processed
     }
 }
