@@ -6,6 +6,7 @@ use appcui::prelude::{Label, Window};
 pub struct AsciiFlashWindow {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    flash_lb: Vec<Handle<Label>>,
 }
 
 impl AsciiFlashWindow {
@@ -13,12 +14,34 @@ impl AsciiFlashWindow {
         config: Rc<RefCell<crate::config::Config>>,
         cpu: Rc<RefCell<crate::memory::ATmemory>>,
     ) -> Self {
+        let max_window: usize = config.borrow().display.memory_bytes_per_column * 2;
+        let bytes_per_row: usize = config.borrow().display.memory_bytes_per_row;
+        let max_rows: usize = (max_window / bytes_per_row) + 1;
+
         let mut win = Self {
-            base: window!("'Flash (ASCII)',a:c,w:32,h:32,flags:sizeable"),
+            base: Window::new(
+                "Flash (ASCII snapshot)",
+                LayoutBuilder::new()
+                    .alignment(Alignment::Center)
+                    .width(24)
+                    .height((max_rows as u8) + 2)
+                    .build(),
+                window::Flags::Sizeable,
+            ),
             config,
             cpu,
+            flash_lb: vec![Handle::None; max_rows],
         };
+
+        for byte in 0..win.flash_lb.len() {
+            win.flash_lb[byte] = win.add(Label::new(
+                "",
+                LayoutBuilder::new().x(0).y(byte as u8).width(32).build(),
+            ));
+        }
+
         Self::render_flash_memory(&mut win);
+
         win
     }
 
@@ -47,17 +70,28 @@ impl AsciiFlashWindow {
         row
     }
 
-    fn render_flash_memory(window: &mut AsciiFlashWindow) {
-        let (start, end) = window.get_memory_window_boundary();
+    fn render_flash_memory(&mut self) {
+        let (start, end) = self.get_memory_window_boundary();
+        let bytes_per_row = self.config.borrow().display.memory_bytes_per_row;
 
-        let memory_bytes_per_row = window.config.borrow().display.memory_bytes_per_row;
+        let mut label_idx = 0;
+        for addr in (start..end).step_by(bytes_per_row) {
+            let row_text = self.format_memory_row(addr);
+            if label_idx < self.flash_lb.len() {
+                let h = self.flash_lb[label_idx];
+                if let Some(lb) = self.control_mut(h) {
+                    lb.set_caption(&row_text);
+                }
+                label_idx += 1;
+            }
+        }
 
-        for (idx, addr) in (start..end).step_by(memory_bytes_per_row).enumerate() {
-            let row = window.format_memory_row(addr);
-            window.add(Label::new(
-                &row,
-                LayoutBuilder::new().x(0).y(idx as u32).width(32).build(),
-            ));
+        while label_idx < self.flash_lb.len() {
+            let h = self.flash_lb[label_idx];
+            if let Some(lb) = self.control_mut(h) {
+                lb.set_caption("");
+            }
+            label_idx += 1;
         }
     }
 
@@ -70,3 +104,4 @@ impl AsciiFlashWindow {
         }
     }
 }
+
