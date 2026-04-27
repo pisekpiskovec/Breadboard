@@ -1,8 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use appcui::prelude::{Label, Window};
 
-#[Window]
+#[Window(events = TimerEvents)]
 pub struct AsciiFlashWindow {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
@@ -20,7 +20,7 @@ impl AsciiFlashWindow {
 
         let mut win = Self {
             base: Window::new(
-                "Flash (ASCII snapshot)",
+                "Flash (ASCII)",
                 LayoutBuilder::new()
                     .alignment(Alignment::Center)
                     .width(24)
@@ -42,6 +42,10 @@ impl AsciiFlashWindow {
 
         Self::render_flash_memory(&mut win);
 
+        if let Some(timer) = win.timer() {
+            timer.start(Duration::from_millis(100));
+        }
+
         win
     }
 
@@ -62,9 +66,17 @@ impl AsciiFlashWindow {
         let mut row = String::new();
 
         row.push_str(&format!("{:04X}: ", addr));
+        let range = 32..126;
 
         for seg in addr..addr + self.config.borrow().display.memory_bytes_per_row {
-            let seg_byte = &format!(" {}", Self::byte_to_ascii(self.cpu.borrow().flash()[seg]));
+            let seg_byte = &format!(
+                " {}",
+                if range.contains(&self.cpu.borrow().flash()[seg]) {
+                    char::from(self.cpu.borrow().flash()[seg])
+                } else {
+                    '.'
+                }
+            );
             row.push_str(seg_byte);
         }
         row
@@ -94,14 +106,11 @@ impl AsciiFlashWindow {
             label_idx += 1;
         }
     }
-
-    fn byte_to_ascii(byte: u8) -> char {
-        let range = 32..126;
-        if range.contains(&byte) {
-            char::from(byte)
-        } else {
-            '.'
-        }
-    }
 }
 
+impl TimerEvents for AsciiFlashWindow {
+    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
+        Self::render_flash_memory(self);
+        EventProcessStatus::Processed
+    }
+}
