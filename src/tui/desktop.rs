@@ -4,7 +4,7 @@ use appcui::prelude::Desktop;
 
 use crate::tui::{ascii::AsciiFlashWindow, flash::FlashWindow, register::RegisterWindow};
 
-#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowFlash, ShowRegisters, ShowLicense, CPUStep, CPUAuto, CPUReset, AppExit])]
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowFlash, ShowRegisters, CPUStep, CPUAuto, CPUReset, AppExit])]
 pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
@@ -104,8 +104,16 @@ impl MenuEvents for TDesktop {
                 let reg_win = RegisterWindow::new(Rc::clone(&self.cpu));
                 self.add_window(reg_win);
             }
-            tdesktop::Commands::ShowAbout => todo!(),
-            tdesktop::Commands::ShowLicense => todo!(),
+            tdesktop::Commands::ShowAbout => dialogs::message(
+                "Breadboard",
+                &format!(
+                    "An ATmega16 emulator.
+
+Version: {}
+License: MIT",
+                    env!("CARGO_PKG_VERSION")
+                ),
+            ),
             tdesktop::Commands::CPUStep => {
                 self.cpu_auto_step = false;
                 match self.cpu.borrow_mut().step() {
@@ -249,11 +257,6 @@ impl DesktopEvents for TDesktop {
             "&About Breadboard",
             Key::None,
             tdesktop::Commands::ShowAbout,
-        ));
-        menu_help.add(menu::Command::new(
-            "&License",
-            Key::None,
-            tdesktop::Commands::ShowLicense,
         ));
         self.menu_help = self.appbar().add(appbar::MenuButton::new(
             "&Help",
