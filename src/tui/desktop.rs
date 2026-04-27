@@ -1,10 +1,10 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use appcui::prelude::Desktop;
 
-use crate::tui::ascii::AsciiFlashWindow;
+use crate::tui::{ascii::AsciiFlashWindow, flash::FlashWindow, register::RegisterWindow};
 
-#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowLicense, CPUStep, CPUAuto, CPUReset, AppExit])]
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowFlash, ShowRegisters, ShowLicense, CPUStep, CPUAuto, CPUReset, AppExit])]
 pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
@@ -92,22 +92,61 @@ impl MenuEvents for TDesktop {
                 }
             }
             tdesktop::Commands::ShowAscii => {
-                let ascii = AsciiFlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
-                self.add_window(ascii);
+                let ascii_win =
+                    AsciiFlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
+                self.add_window(ascii_win);
+            }
+            tdesktop::Commands::ShowFlash => {
+                let flash_win = FlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
+                self.add_window(flash_win);
+            }
+            tdesktop::Commands::ShowRegisters => {
+                let reg_win = RegisterWindow::new(Rc::clone(&self.cpu));
+                self.add_window(reg_win);
             }
             tdesktop::Commands::ShowAbout => todo!(),
             tdesktop::Commands::ShowLicense => todo!(),
-            tdesktop::Commands::CPUStep => match self.cpu.borrow_mut().step() {
-                Ok(_) => {}
-                Err(e) => {
-                    log!("ERROR", "Failed to step program: {}", e)
+            tdesktop::Commands::CPUStep => {
+                self.cpu_auto_step = false;
+                match self.cpu.borrow_mut().step() {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log!("ERROR", "Failed to step program: {}", e)
+                    }
                 }
-            },
+            }
             tdesktop::Commands::CPUAuto => {
                 self.cpu_auto_step = !self.cpu_auto_step;
+                if let Some(timer) = self.base.timer() {
+                    match self.cpu_auto_step {
+                        true => timer.resume(),
+                        false => timer.pause(),
+                    }
+                }
             }
-            tdesktop::Commands::CPUReset => self.cpu.borrow_mut().reset(),
+            tdesktop::Commands::CPUReset => {
+                self.cpu_auto_step = false;
+                self.cpu.borrow_mut().reset();
+            }
             tdesktop::Commands::AppExit => self.close(),
+        }
+    }
+
+    fn on_check(
+        &mut self,
+        _menu: Handle<Menu>,
+        _item: Handle<menu::CheckBox>,
+        command: tdesktop::Commands,
+        checked: bool,
+    ) {
+        if command == tdesktop::Commands::CPUAuto {
+            self.cpu_auto_step = checked;
+            if let Some(timer) = self.base.timer() {
+                match self.cpu_auto_step {
+                    true => timer.resume(),
+                    false => timer.pause(),
+                }
+            }
         }
     }
 }
@@ -123,6 +162,13 @@ impl AppBarEvents for TDesktop {
 
 impl DesktopEvents for TDesktop {
     fn on_start(&mut self) {
+        // Timer setup
+        if let Some(timer) = self.base.timer() {
+            timer.set_interval(Duration::from_millis(1000));
+        } else {
+            dialogs::error("Breadboard", "Timer is NOT available!");
+        }
+
         // File menu
         let mut menu_file = Menu::new();
         menu_file.add(menu::Command::new(
@@ -180,6 +226,16 @@ impl DesktopEvents for TDesktop {
             Key::None,
             tdesktop::Commands::ShowAscii,
         ));
+        menu_view.add(menu::Command::new(
+            "Show &Flash",
+            Key::None,
+            tdesktop::Commands::ShowFlash,
+        ));
+        menu_view.add(menu::Command::new(
+            "Show &Registers",
+            Key::None,
+            tdesktop::Commands::ShowRegisters,
+        ));
         self.menu_view = self.appbar().add(appbar::MenuButton::new(
             "&View",
             menu_view,
@@ -205,5 +261,20 @@ impl DesktopEvents for TDesktop {
             4,
             appbar::Side::Left,
         ));
+    }
+}
+
+impl TimerEvents for TDesktop {
+    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
+        if self.cpu_auto_step {
+            match self.cpu.borrow_mut().step() {
+                Ok(_) => {}
+                Err(e) => {
+                    log!("ERROR", "Failed to step program: {}", e);
+                    dialogs::error("Auto-Run", &format!("Failed to step program: {}", e));
+                }
+            };
+        }
+        EventProcessStatus::Processed
     }
 }
