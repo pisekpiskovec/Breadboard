@@ -1,0 +1,283 @@
+use std::{cell::RefCell, rc::Rc, time::Duration};
+
+use appcui::prelude::Desktop;
+
+use crate::tui::{ascii::AsciiFlashWindow, flash::FlashWindow, register::RegisterWindow};
+
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowFlash, ShowRegisters, CPUStep, CPUAuto, CPUReset, AppExit])]
+pub struct TDesktop {
+    config: Rc<RefCell<crate::config::Config>>,
+    cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    cpu_auto_step: bool,
+    menu_file: Handle<appbar::MenuButton>,
+    menu_edit: Handle<appbar::MenuButton>,
+    menu_view: Handle<appbar::MenuButton>,
+    menu_help: Handle<appbar::MenuButton>,
+}
+
+impl TDesktop {
+    pub fn new(
+        config: Rc<RefCell<crate::config::Config>>,
+        cpu: Rc<RefCell<crate::memory::ATmemory>>,
+    ) -> Self {
+        Self {
+            base: Desktop::new(),
+            config,
+            cpu,
+            cpu_auto_step: false,
+            menu_file: Handle::None,
+            menu_edit: Handle::None,
+            menu_view: Handle::None,
+            menu_help: Handle::None,
+        }
+    }
+}
+
+impl MenuEvents for TDesktop {
+    fn on_command(
+        &mut self,
+        _menu: Handle<Menu>,
+        _item: Handle<menu::Command>,
+        command: tdesktop::Commands,
+    ) {
+        match command {
+            tdesktop::Commands::OpenBin => {
+                let file = dialogs::open(
+                    "Open binary file",
+                    "",
+                    dialogs::Location::Last,
+                    Some("Binaries = [bin]"),
+                    dialogs::OpenFileDialogFlags::Icons
+                        | dialogs::OpenFileDialogFlags::CheckIfFileExists,
+                );
+
+                if let Some(path) = file
+                    && let Some(path_str) = path.to_str()
+                {
+                    log!("INFO", "Loading: {}", path_str);
+                    self.cpu.borrow_mut().reset();
+                    match self.cpu.borrow_mut().load_bin(path_str) {
+                        Ok(_) => {
+                            log!("INFO", "File loaded succesfully")
+                        }
+                        Err(e) => {
+                            log!("ERROR", "Failed to load file: {}", e)
+                        }
+                    }
+                }
+            }
+            tdesktop::Commands::OpenHex => {
+                let file = dialogs::open(
+                    "Open hex file",
+                    "",
+                    dialogs::Location::Last,
+                    Some("Hex file = [hex]"),
+                    dialogs::OpenFileDialogFlags::Icons
+                        | dialogs::OpenFileDialogFlags::CheckIfFileExists,
+                );
+
+                if let Some(path) = file
+                    && let Some(path_str) = path.to_str()
+                {
+                    log!("INFO", "Loading: {}", path_str);
+                    self.cpu.borrow_mut().reset();
+                    match self.cpu.borrow_mut().load_hex(path_str) {
+                        Ok(_) => {
+                            log!("INFO", "File loaded succesfully")
+                        }
+                        Err(e) => {
+                            log!("ERROR", "Failed to load file: {}", e)
+                        }
+                    }
+                }
+            }
+            tdesktop::Commands::ShowAscii => {
+                let ascii_win =
+                    AsciiFlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
+                self.add_window(ascii_win);
+            }
+            tdesktop::Commands::ShowFlash => {
+                let flash_win = FlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
+                self.add_window(flash_win);
+            }
+            tdesktop::Commands::ShowRegisters => {
+                let reg_win = RegisterWindow::new(Rc::clone(&self.cpu));
+                self.add_window(reg_win);
+            }
+            tdesktop::Commands::ShowAbout => dialogs::message(
+                "Breadboard",
+                &format!(
+                    "An ATmega16 emulator.
+
+Version: {}
+License: MIT",
+                    env!("CARGO_PKG_VERSION")
+                ),
+            ),
+            tdesktop::Commands::CPUStep => {
+                self.cpu_auto_step = false;
+                match self.cpu.borrow_mut().step() {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log!("ERROR", "Failed to step program: {}", e)
+                    }
+                }
+            }
+            tdesktop::Commands::CPUAuto => {
+                self.cpu_auto_step = !self.cpu_auto_step;
+                if let Some(timer) = self.base.timer() {
+                    match self.cpu_auto_step {
+                        true => timer.resume(),
+                        false => timer.pause(),
+                    }
+                }
+            }
+            tdesktop::Commands::CPUReset => {
+                self.cpu_auto_step = false;
+                self.cpu.borrow_mut().reset();
+            }
+            tdesktop::Commands::AppExit => self.close(),
+        }
+    }
+
+    fn on_check(
+        &mut self,
+        _menu: Handle<Menu>,
+        _item: Handle<menu::CheckBox>,
+        command: tdesktop::Commands,
+        checked: bool,
+    ) {
+        if command == tdesktop::Commands::CPUAuto {
+            self.cpu_auto_step = checked;
+            if let Some(timer) = self.base.timer() {
+                match self.cpu_auto_step {
+                    true => timer.resume(),
+                    false => timer.pause(),
+                }
+            }
+        }
+    }
+}
+
+impl AppBarEvents for TDesktop {
+    fn on_update(&self, appbar: &mut AppBar) {
+        appbar.show(self.menu_file);
+        appbar.show(self.menu_edit);
+        appbar.show(self.menu_view);
+        appbar.show(self.menu_help);
+    }
+}
+
+impl DesktopEvents for TDesktop {
+    fn on_start(&mut self) {
+        // Timer setup
+        if let Some(timer) = self.base.timer() {
+            timer.set_interval(Duration::from_millis(1000));
+        } else {
+            dialogs::error("Breadboard", "Timer is NOT available!");
+        }
+
+        // File menu
+        let mut menu_file = Menu::new();
+        menu_file.add(menu::Command::new(
+            "Open .&bin",
+            key!("Alt+O"),
+            tdesktop::Commands::OpenBin,
+        ));
+        menu_file.add(menu::Command::new(
+            "Open .&hex",
+            key!("Ctrl+O"),
+            tdesktop::Commands::OpenHex,
+        ));
+        menu_file.add(menu::Separator::new());
+        menu_file.add(menu::Command::new(
+            "E&xit",
+            key!("Ctrl+Q"),
+            tdesktop::Commands::AppExit,
+        ));
+        self.menu_file = self.appbar().add(appbar::MenuButton::new(
+            "&File",
+            menu_file,
+            1,
+            appbar::Side::Left,
+        ));
+
+        // Edit menu
+        let mut menu_edit = Menu::new();
+        menu_edit.add(menu::Command::new(
+            "&Step",
+            key!("F8"),
+            tdesktop::Commands::CPUStep,
+        ));
+        menu_edit.add(menu::CheckBox::new(
+            "&Auto Run",
+            key!("F5"),
+            tdesktop::Commands::CPUAuto,
+            self.cpu_auto_step,
+        ));
+        menu_edit.add(menu::Command::new(
+            "&Reset",
+            key!("Ctrl+R"),
+            tdesktop::Commands::CPUReset,
+        ));
+        self.menu_edit = self.appbar().add(appbar::MenuButton::new(
+            "&Edit",
+            menu_edit,
+            2,
+            appbar::Side::Left,
+        ));
+
+        // View menu
+        let mut menu_view = Menu::new();
+        menu_view.add(menu::Command::new(
+            "Show Flash as &ASCII",
+            Key::None,
+            tdesktop::Commands::ShowAscii,
+        ));
+        menu_view.add(menu::Command::new(
+            "Show &Flash",
+            Key::None,
+            tdesktop::Commands::ShowFlash,
+        ));
+        menu_view.add(menu::Command::new(
+            "Show &Registers",
+            Key::None,
+            tdesktop::Commands::ShowRegisters,
+        ));
+        self.menu_view = self.appbar().add(appbar::MenuButton::new(
+            "&View",
+            menu_view,
+            3,
+            appbar::Side::Left,
+        ));
+
+        // Help menu
+        let mut menu_help = Menu::new();
+        menu_help.add(menu::Command::new(
+            "&About Breadboard",
+            Key::None,
+            tdesktop::Commands::ShowAbout,
+        ));
+        self.menu_help = self.appbar().add(appbar::MenuButton::new(
+            "&Help",
+            menu_help,
+            4,
+            appbar::Side::Left,
+        ));
+    }
+}
+
+impl TimerEvents for TDesktop {
+    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
+        if self.cpu_auto_step {
+            match self.cpu.borrow_mut().step() {
+                Ok(_) => {}
+                Err(e) => {
+                    log!("ERROR", "Failed to step program: {}", e);
+                    dialogs::error("Auto-Run", &format!("Failed to step program: {}", e));
+                }
+            };
+        }
+        EventProcessStatus::Processed
+    }
+}
