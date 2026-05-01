@@ -2,8 +2,9 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use appcui::prelude::{Label, Window};
 
-#[Window(events = TimerEvents)]
+#[Window(events = [TimerEvents, CommandBarEvents], commands=[SwitchASCII])]
 pub struct FlashWindow {
+    ascii_switch: bool,
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
     flash_lb: Vec<Handle<Label>>,
@@ -19,6 +20,7 @@ impl FlashWindow {
         let max_rows: usize = (max_window / bytes_per_row) + 1;
 
         let mut win = Self {
+            ascii_switch: false,
             base: Window::new(
                 "Flash",
                 LayoutBuilder::new()
@@ -68,8 +70,24 @@ impl FlashWindow {
         row.push_str(&format!("{:04X}: ", addr));
 
         for seg in addr..addr + self.config.borrow().display.memory_bytes_per_row {
-            let seg_byte = &format!(" {:02X}", self.cpu.borrow().flash()[seg]);
-            row.push_str(seg_byte);
+            match self.ascii_switch {
+                true => {
+                    let range = 32..126;
+                    let seg_byte = &format!(
+                        " {}",
+                        if range.contains(&self.cpu.borrow().flash()[seg]) {
+                            char::from(self.cpu.borrow().flash()[seg])
+                        } else {
+                            '.'
+                        }
+                    );
+                    row.push_str(seg_byte);
+                }
+                false => {
+                    let seg_byte = &format!(" {:02X}", self.cpu.borrow().flash()[seg]);
+                    row.push_str(seg_byte);
+                }
+            }
         }
         row
     }
@@ -104,5 +122,21 @@ impl TimerEvents for FlashWindow {
     fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
         Self::render_flash_memory(self);
         EventProcessStatus::Processed
+    }
+}
+
+impl CommandBarEvents for FlashWindow {
+    fn on_update_commandbar(&self, commandbar: &mut CommandBar) {
+        commandbar.set(
+            key!("Enter"),
+            "Toggle ASCII view",
+            flashwindow::Commands::SwitchASCII,
+        );
+    }
+
+    fn on_event(&mut self, command_id: flashwindow::Commands) {
+        match command_id {
+            flashwindow::Commands::SwitchASCII => self.ascii_switch = !self.ascii_switch,
+        }
     }
 }

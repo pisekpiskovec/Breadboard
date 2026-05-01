@@ -6,7 +6,6 @@ use crate::{
     tui::{desktop::TDesktop, flash::FlashWindow, register::RegisterWindow, status::StatusWindow},
 };
 
-mod ascii;
 mod desktop;
 mod flash;
 mod register;

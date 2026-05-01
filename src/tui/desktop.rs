@@ -91,11 +91,6 @@ impl MenuEvents for TDesktop {
                     }
                 }
             }
-            tdesktop::Commands::ShowAscii => {
-                let ascii_win =
-                    AsciiFlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
-                self.add_window(ascii_win);
-            }
             tdesktop::Commands::ShowFlash => {
                 let flash_win = FlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
                 self.add_window(flash_win);
@@ -229,11 +224,6 @@ impl DesktopEvents for TDesktop {
 
         // View menu
         let mut menu_view = Menu::new();
-        menu_view.add(menu::Command::new(
-            "Show Flash as &ASCII",
-            Key::None,
-            tdesktop::Commands::ShowAscii,
-        ));
         menu_view.add(menu::Command::new(
             "Show &Flash",
             Key::None,
