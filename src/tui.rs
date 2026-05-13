@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     config::Config,
     memory::ATmemory,
-    tui::{desktop::TDesktop, flash::FlashWindow, register::RegisterWindow, status::StatusWindow},
+    tui::{desktop::TDesktop, register::RegisterWindow, status::StatusWindow},
 };
 
 mod desktop;
@@ -42,10 +42,6 @@ impl TUInterface {
             .build()
             .unwrap();
 
-        app.add_window(FlashWindow::new(
-            Rc::clone(&config_shared),
-            Rc::clone(&cpu_shared),
-        ));
         app.add_window(StatusWindow::new(Rc::clone(&cpu_shared)));
         app.add_window(RegisterWindow::new(Rc::clone(&cpu_shared)));
 

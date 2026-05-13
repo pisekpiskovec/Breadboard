@@ -9,6 +9,7 @@ pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
     cpu_auto_step: bool,
+    flash_window_handler: Handle<FlashWindow>,
     menu_file: Handle<appbar::MenuButton>,
     menu_edit: Handle<appbar::MenuButton>,
     menu_view: Handle<appbar::MenuButton>,
@@ -25,6 +26,7 @@ impl TDesktop {
             config,
             cpu,
             cpu_auto_step: false,
+            flash_window_handler: Handle::None,
             menu_file: Handle::None,
             menu_edit: Handle::None,
             menu_view: Handle::None,
@@ -65,6 +67,11 @@ impl MenuEvents for TDesktop {
                         }
                     }
                 }
+
+                let handle = self.flash_window_handler;
+                if let Some(flash) = self.window_mut(handle) {
+                    flash.load_flash();
+                }
             }
             tdesktop::Commands::OpenHex => {
                 let file = dialogs::open(
@@ -90,10 +97,15 @@ impl MenuEvents for TDesktop {
                         }
                     }
                 }
+
+                let handle = self.flash_window_handler;
+                if let Some(flash) = self.window_mut(handle) {
+                    flash.load_flash();
+                }
             }
             tdesktop::Commands::ShowFlash => {
                 let flash_win = FlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
-                self.add_window(flash_win);
+                self.flash_window_handler = self.add_window(flash_win);
             }
             tdesktop::Commands::ShowRegisters => {
                 let reg_win = RegisterWindow::new(Rc::clone(&self.cpu));
@@ -171,6 +183,10 @@ impl DesktopEvents for TDesktop {
         } else {
             dialogs::error("Breadboard", "Timer is NOT available!");
         }
+
+        // Window spawns
+        let flash_win = FlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
+        self.flash_window_handler = self.add_window(flash_win);
 
         // File menu
         let mut menu_file = Menu::new();

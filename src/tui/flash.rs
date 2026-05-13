@@ -1,13 +1,14 @@
-use std::{cell::RefCell, rc::Rc, time::Duration};
+use std::{cell::RefCell, rc::Rc};
 
-use appcui::prelude::{Label, Window};
+use appcui::prelude::{ActionRequest, Window, WindowEvents};
 
-#[Window(events = [TimerEvents, CommandBarEvents], commands=[SwitchASCII])]
+use crate::memory::ATmemory;
+
+#[Window(events=WindowEvents)]
 pub struct FlashWindow {
-    ascii_switch: bool,
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
-    flash_lb: Vec<Handle<Label>>,
+    flash: Handle<TextArea>,
 }
 
 impl FlashWindow {
@@ -20,123 +21,73 @@ impl FlashWindow {
         let max_rows: usize = (max_window / bytes_per_row) + 1;
 
         let mut win = Self {
-            ascii_switch: false,
             base: Window::new(
                 "Flash",
                 LayoutBuilder::new()
                     .alignment(Alignment::Center)
-                    .width(32)
+                    .width(33)
                     .height((max_rows as u8) + 2)
                     .build(),
                 window::Flags::Sizeable,
             ),
             config,
             cpu,
-            flash_lb: vec![Handle::None; max_rows],
+            flash: Handle::None,
         };
 
-        for byte in 0..win.flash_lb.len() {
-            win.flash_lb[byte] = win.add(Label::new(
-                "",
-                LayoutBuilder::new().x(0).y(byte as u8).width(32).build(),
-            ));
-        }
-
-        Self::render_flash_memory(&mut win);
-
-        if let Some(timer) = win.timer() {
-            timer.start(Duration::from_millis(100));
-        }
+        win.flash = win.add(TextArea::new(
+            "0000:  00 00 00 00 00 00 00 00  . . . . . . . .",
+            LayoutBuilder::new().dock(Dock::Fill).build(),
+            textarea::Flags::ReadOnly | textarea::Flags::ScrollBars,
+        ));
 
         win
     }
 
-    fn get_memory_window_boundary(&self) -> (usize, usize) {
-        let pc = self.cpu.borrow().pc() as i32;
-        let half_window = self.config.borrow().display.memory_bytes_per_column as i32;
-
-        let start = pc - half_window;
-        let end = pc + half_window + 1;
-
-        let start = start.max(0) as usize;
-        let end = end.min(self.cpu.borrow().flash().len() as i32) as usize;
-
-        (start, end)
-    }
-
-    fn format_memory_row(&self, addr: usize) -> String {
-        let mut row = String::new();
-
-        row.push_str(&format!("{:04X}: ", addr));
-
-        for seg in addr..addr + self.config.borrow().display.memory_bytes_per_row {
-            match self.ascii_switch {
-                true => {
-                    let range = 32..126;
-                    let seg_byte = &format!(
-                        " {}",
-                        if range.contains(&self.cpu.borrow().flash()[seg]) {
-                            char::from(self.cpu.borrow().flash()[seg])
-                        } else {
-                            '.'
-                        }
-                    );
-                    row.push_str(seg_byte);
-                }
-                false => {
-                    let seg_byte = &format!(" {:02X}", self.cpu.borrow().flash()[seg]);
-                    row.push_str(seg_byte);
-                }
-            }
-        }
-        row
-    }
-
-    fn render_flash_memory(&mut self) {
-        let (start, end) = self.get_memory_window_boundary();
+    pub fn load_flash(&mut self) -> String {
+        let mut flash = String::new();
         let bytes_per_row = self.config.borrow().display.memory_bytes_per_row;
 
-        let mut label_idx = 0;
-        for addr in (start..end).step_by(bytes_per_row) {
-            let row_text = self.format_memory_row(addr);
-            if label_idx < self.flash_lb.len() {
-                let h = self.flash_lb[label_idx];
-                if let Some(lb) = self.control_mut(h) {
-                    lb.set_caption(&row_text);
-                }
-                label_idx += 1;
+        for addr in (0..16384).step_by(bytes_per_row) {
+            flash.push_str(&format!("{:04X}: ", addr));
+
+            // Hex
+            for seg in addr..addr + bytes_per_row {
+                let cpu_seg = self.cpu.borrow().flash()[seg];
+
+                let seg_byte = &format!(" {:02X}", cpu_seg);
+                flash.push_str(seg_byte);
             }
+
+            // ASCII
+            for seg in addr..addr + bytes_per_row {
+                let cpu_seg = self.cpu.borrow().flash()[seg];
+                let seg_byte = &format!(
+                    " {}",
+                    if (32..126).contains(&cpu_seg) {
+                        char::from(cpu_seg)
+                    } else {
+                        '.'
+                    }
+                );
+                flash.push_str(seg_byte);
+            }
+
+            flash.push('\n');
         }
 
-        while label_idx < self.flash_lb.len() {
-            let h = self.flash_lb[label_idx];
-            if let Some(lb) = self.control_mut(h) {
-                lb.set_caption("");
-            }
-            label_idx += 1;
+        let handle = self.flash;
+        if let Some(ta) = self.control_mut(handle) {
+            ta.set_text(&flash);
         }
+
+        flash
     }
 }
 
-impl TimerEvents for FlashWindow {
-    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
-        Self::render_flash_memory(self);
-        EventProcessStatus::Processed
-    }
-}
-
-impl CommandBarEvents for FlashWindow {
-    fn on_update_commandbar(&self, commandbar: &mut CommandBar) {
-        commandbar.set(
-            key!("Enter"),
-            "Toggle ASCII view",
-            flashwindow::Commands::SwitchASCII,
-        );
-    }
-
-    fn on_event(&mut self, command_id: flashwindow::Commands) {
-        match command_id {
-            flashwindow::Commands::SwitchASCII => self.ascii_switch = !self.ascii_switch,
-        }
+impl WindowEvents for FlashWindow {
+    fn on_cancel(&mut self) -> ActionRequest {
+        self.cpu.replace(ATmemory::init());
+        ActionRequest::Allow
     }
 }
