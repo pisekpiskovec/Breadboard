@@ -3,12 +3,12 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     config::Config,
     memory::ATmemory,
-    tui::{desktop::TDesktop, register::RegisterWindow, status::StatusWindow},
+    tui::{desktop::TDesktop, memory::MemoryWindow, status::StatusWindow},
 };
 
 mod desktop;
 mod flash;
-mod register;
+mod memory;
 mod status;
 
 pub struct TUInterface {
@@ -38,12 +38,11 @@ impl TUInterface {
                 Rc::clone(&config_shared),
                 Rc::clone(&cpu_shared),
             ))
-            .command_bar()
             .build()
             .unwrap();
 
         app.add_window(StatusWindow::new(Rc::clone(&cpu_shared)));
-        app.add_window(RegisterWindow::new(Rc::clone(&cpu_shared)));
+        app.add_window(MemoryWindow::new(Rc::clone(&config_shared), Rc::clone(&cpu_shared)));
 
         app
     }

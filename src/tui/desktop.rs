@@ -2,9 +2,9 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use appcui::prelude::Desktop;
 
-use crate::tui::{ascii::AsciiFlashWindow, flash::FlashWindow, register::RegisterWindow};
+use crate::tui::{flash::FlashWindow, memory::MemoryWindow};
 
-#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowAscii, ShowFlash, ShowRegisters, CPUStep, CPUAuto, CPUReset, AppExit])]
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowFlash, ShowMemory, CPUStep, CPUAuto, CPUReset, AppExit])]
 pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
@@ -107,9 +107,9 @@ impl MenuEvents for TDesktop {
                 let flash_win = FlashWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
                 self.flash_window_handler = self.add_window(flash_win);
             }
-            tdesktop::Commands::ShowRegisters => {
-                let reg_win = RegisterWindow::new(Rc::clone(&self.cpu));
-                self.add_window(reg_win);
+            tdesktop::Commands::ShowMemory => {
+                let mem_win = MemoryWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
+                self.add_window(mem_win);
             }
             tdesktop::Commands::ShowAbout => dialogs::message(
                 "Breadboard",
@@ -246,9 +246,9 @@ impl DesktopEvents for TDesktop {
             tdesktop::Commands::ShowFlash,
         ));
         menu_view.add(menu::Command::new(
-            "Show &Registers",
+            "Show &Memory",
             Key::None,
-            tdesktop::Commands::ShowRegisters,
+            tdesktop::Commands::ShowMemory,
         ));
         self.menu_view = self.appbar().add(appbar::MenuButton::new(
             "&View",

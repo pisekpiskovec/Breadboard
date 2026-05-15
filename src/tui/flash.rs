@@ -75,6 +75,7 @@ impl FlashWindow {
 
             flash.push('\n');
         }
+        flash.push('\u{0008}');
 
         let handle = self.flash;
         if let Some(ta) = self.control_mut(handle) {
