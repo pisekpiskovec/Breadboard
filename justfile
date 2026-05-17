@@ -14,6 +14,8 @@ release:
 install:
     cargo build --release
     cp ./target/release/Breadboard $HOME/.local/bin/breadboard
+    mkdir -p $HOME/.local/share/icons/hicolor/256x256/apps
+    cp assets/icon.png $HOME/.local/share/icons/hicolor/256x256/apps/breadboard.png
     sed "s|Exec=breadboard|Exec=$HOME/.local/bin/breadboard|" breadboard.desktop > /tmp/breadboard.desktop
     desktop-file-install --dir=$HOME/.local/share/applications /tmp/breadboard.desktop
     cargo clean
