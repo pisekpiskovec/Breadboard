@@ -1,6 +1,6 @@
-use appcui::{input::{MouseEvent, MouseWheelDirection}, prelude::{EventProcessStatus, ListScrollBars, OnKeyPressed, OnMouseEvent, OnPaint, OnResize, Size, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
+use appcui::{input::MouseEvent, prelude::{EventProcessStatus, ListScrollBars, OnKeyPressed, OnMouseEvent, OnPaint, OnResize, Size, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
 
-#[CustomControl(overwrite = OnPaint+OnKeyPressed+OnMouseEvent+OnResize, internal = true)]
+#[CustomControl(overwrite = OnPaint+OnKeyPressed+OnMouseEvent+OnResize)]
 pub struct ListItemList {
     items: Vec<String>,
     flags: Flags,
@@ -90,7 +90,65 @@ impl ListItemList {
     fn update_scrollbars(&mut self) {
         self.comp.set_indexes(self.left_view as u64, self.top_view as u64);
     }
+    fn update_left_position_for_items(&mut self) {
+        let len = self.items.len();
+        if len == 0 {
+            return;
+        }
+        let last_index = (len - 1).min(self.top_view + self.size().height as usize);
+        for i in self.items[self.top_view..=last_index].iter_mut() {
+            i.update_left_pos(self.left_view as u32);
+        }
+    }
+    fn update_position(&mut self, new_pos: usize, emit_event: bool) {
+        let len = self.items.len();
+        if len == 0 {
+            return;
+        }
+        let new_pos = new_pos.min(len - 1);
+        let h = self.size().height as usize;
 
+        // check the top view
+        if self.top_view + h >= len {
+            self.top_view = len.saturating_sub(h);
+        }
+        if new_pos < self.top_view {
+            self.top_view = new_pos;
+        } else {
+            let diff = new_pos - self.top_view;
+            if (diff >= h) && (h > 0) {
+                self.top_view = new_pos - h + 1;
+            }
+        }
+        // update scrollbars
+        self.update_scrollbars();
+        self.update_left_position_for_items();
+        let should_emit = (self.pos != new_pos) && emit_event;
+        self.pos = new_pos;
+        if should_emit {
+            self.raise_event(ControlEvent {
+                emitter: self.handle,
+                receiver: self.event_processor,
+                data: ControlEventData::ListBox(EventData {
+                    event_type: ListBoxEventTypes::CurrentItemChanged,
+                    index: new_pos,
+                    checked: false, // not relevant for this event
+                }),
+            });
+        }
+    }
+
+    fn mouse_to_pos(&self, x: i32, y: i32) -> Option<usize> {
+        let size = self.size();
+        if x < 0 || y < 0 || x >= size.width as i32 || y >= size.height as i32 {
+            return None;
+        }
+        let idx = self.top_view + y as usize;
+        if idx < self.items.len() {
+            return Some(idx);
+        }
+        None
+    }
     fn update_scroll_pos_from_scrollbars(&mut self) {
         self.top_view = (self.comp.vertical_index() as usize).min(self.items.len().saturating_sub(1));
         self.left_view = (self.comp.horizontal_index() as usize).min(self.max_chars as usize);
@@ -103,6 +161,39 @@ impl ListItemList {
         let max_value = self.items.len().saturating_sub(self.size().height as usize);
         self.top_view = new_poz.min(max_value);
         self.update_scrollbars();
+    }
+    fn find_first_item(&mut self, pos: usize) {
+        let mut i = if pos >= self.items.len() { 0 } else { pos };
+        let mut count = self.items.len();
+        while count > 0 {
+            if self.items[i].filtered {
+                self.update_position(i, true);
+                return;
+            }
+            i = (i + 1) % self.items.len();
+            count -= 1;
+        }
+    }
+    fn search(&mut self) {
+        let text_to_search = self.comp.search_text();
+        if text_to_search.is_empty() {
+            for item in self.items.iter_mut() {
+                item.filtered = true;
+            }
+            self.comp.clear_match_count();
+        } else {
+            let mut count = 0usize;
+            for item in self.items.iter_mut() {
+                item.filtered = item.visible_text().index_ignoring_case(text_to_search).is_some();
+                if item.filtered {
+                    count += 1;
+                }
+            }
+            self.comp.set_match_count(count);
+            if count > 0 {
+                self.find_first_item(self.pos);
+            }
+        }
     }
 }
 
