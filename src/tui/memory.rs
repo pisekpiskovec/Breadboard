@@ -2,17 +2,14 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use appcui::prelude::Window;
 
-#[Window(events = [AccordionEvents, TimerEvents])]
+#[Window(events = [TimerEvents])]
 pub struct MemoryWindow {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
-    panels: Handle<Accordion>,
-    ta_reg: Handle<TextArea>,
-    ta_stc: Handle<TextArea>,
+    list: Handle<ListView<MemoryItem>>,
+    g_reg: listview::Group,
+    g_stc: listview::Group,
 }
-
-const REGISTER_PANEL_ID: usize = 0;
-const STACK_PANEL_ID: usize = 1;
 
 impl MemoryWindow {
     pub fn new(
@@ -20,36 +17,25 @@ impl MemoryWindow {
         cpu: Rc<RefCell<crate::memory::ATmemory>>,
     ) -> Self {
         let mut win = Self {
-            base: window!("'Internal Memory',a:bl,w:31,h:34"),
+            base: window!("'Internal Memory',a:bl,w:31,h:36"),
             config,
             cpu,
-            panels: Handle::None,
-            ta_reg: Handle::None,
-            ta_stc: Handle::None,
+            list: Handle::None,
+            g_reg: listview::Group::None,
+            g_stc: listview::Group::None,
         };
 
-        let mut accordion = Accordion::new(
+        let mut list: ListView<MemoryItem> = ListView::new(
             LayoutBuilder::new().dock(Dock::Fill).build(),
-            accordion::Flags::TransparentBackground,
+            listview::Flags::ScrollBars | listview::Flags::NoSelection | listview::Flags::ShowGroups,
         );
 
-        accordion.add_panel("&Registers");
-        let ta_reg = TextArea::new(
-            "R00 = 000",
-            LayoutBuilder::new().dock(Dock::Fill).build(),
-            textarea::Flags::ReadOnly | textarea::Flags::ScrollBars,
-        );
-        win.ta_reg = accordion.add(0, ta_reg);
+        win.g_reg = list.add_group("Registers");
+        win.g_stc = list.add_group("Stack");
 
-        accordion.add_panel("&Stack");
-        let ta_stc = TextArea::new(
-            "0x45F = 0x00",
-            LayoutBuilder::new().dock(Dock::Fill).build(),
-            textarea::Flags::ReadOnly | textarea::Flags::ScrollBars,
-        );
-        win.ta_stc = accordion.add(1, ta_stc);
-
-        win.panels = win.add(accordion);
+        list.add_item(listview::Item::new(MemoryItem { address: "h", value: "h" }, false, None, [' ', ' '], win.g_reg));
+        
+        win.list = win.add(list);
 
         if let Some(timer) = win.timer() {
             timer.start(Duration::from_millis(100_00));
@@ -59,14 +45,8 @@ impl MemoryWindow {
     }
 
     pub fn update(&mut self) {
-        let handle = self.panels;
-        if let Some(pa) = self.control_mut(handle) {
-            match pa.current_panel() {
-                Some(REGISTER_PANEL_ID) => self.update_registers(),
-                Some(STACK_PANEL_ID) => self.update_stack(),
-                _ => {}
-            }
-        }
+        self.update_registers();
+        self.update_stack();
     }
 
     fn update_registers(&mut self) {
@@ -78,10 +58,6 @@ impl MemoryWindow {
             );
         }
         text.push('\u{0008}');
-        let handle = self.ta_reg;
-        if let Some(ta) = self.control_mut(handle) {
-            ta.set_text(&text);
-        }
     }
 
     fn format_registers(&self, value: u8) -> String {
@@ -101,10 +77,6 @@ impl MemoryWindow {
         }
 
         text.push('\u{0008}');
-        let handle = self.ta_stc;
-        if let Some(ta) = self.control_mut(handle) {
-            ta.set_text(&text);
-        }
     }
 
     fn format_stack(&self, value: u8) -> String {
@@ -116,16 +88,24 @@ impl MemoryWindow {
     }
 }
 
-impl AccordionEvents for MemoryWindow {
-    fn on_panel_changed(&mut self, _handle: Handle<Accordion>, _new_panel_index: u32, _old_panel_index: u32) -> EventProcessStatus {
+impl TimerEvents for MemoryWindow {
+    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
         self.update();
         EventProcessStatus::Processed
     }
 }
 
-impl TimerEvents for MemoryWindow {
-    fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
-        self.update();
-        EventProcessStatus::Processed
+struct MemoryItem {
+    address: &'static str,
+    value: &'static str,
+}
+
+impl listview::ListItem for MemoryItem {
+    fn render_method(&'_ self, column_index: u16) -> Option<RenderMethod<'_>> {
+        match column_index {
+            0 => Some(listview::RenderMethod::Text(self.address)),
+            1 => Some(listview::RenderMethod::Text(self.value)),
+            _ => None,
+        }
     }
 }
