@@ -1,4 +1,4 @@
-use appcui::{input::MouseEvent, prelude::{EventProcessStatus, ListScrollBars, OnKeyPressed, OnMouseEvent, OnPaint, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
+use appcui::{prelude::{ListScrollBars, OnKeyPressed, OnPaint, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
 
 #[CustomControl(overwrite = OnPaint+OnKeyPressed+OnMouseEvent+OnResize)]
 pub struct ListItemList {
@@ -333,37 +333,6 @@ impl OnKeyPressed for ListItemList {
             EventProcessStatus::Processed
         } else {
             EventProcessStatus::Ignored
-        }
-    }
-}
-
-impl OnMouseEvent for ListItemList {
-    fn on_mouse_event(&mut self, event: &MouseEvent) -> EventProcessStatus {
-        if self.comp.process_mouse_event(event) {
-            self.update_scroll_pos_from_scrollbars();
-            return EventProcessStatus::Processed;
-        }
-
-        let response = match event {
-            MouseEvent::Enter | MouseEvent::Leave => EventProcessStatus::Ignored,
-            MouseEvent::Over(_) => EventProcessStatus::Ignored,
-            MouseEvent::Pressed(_) | MouseEvent::DoubleClick(_) => EventProcessStatus::Ignored,
-            MouseEvent::Released(_) => EventProcessStatus::Ignored,
-            MouseEvent::Drag(_) => EventProcessStatus::Ignored,
-            MouseEvent::Wheel(evn) => {
-                match evn {
-                    MouseWheelDirection::Up => self.move_scroll_to(self.top_view.saturating_sub(1)),
-                    MouseWheelDirection::Down => self.move_scroll_to(self.top_view.saturating_add(1)),
-                    _ => {}
-                }
-                EventProcessStatus::Processed
-            }
-        };
-        
-        if self.comp.should_repaint() {
-            EventProcessStatus::Processed
-        } else {
-            response
         }
     }
 }
