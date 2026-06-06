@@ -8,7 +8,6 @@ use crate::{
 
 mod desktop;
 mod flash;
-mod list_item_list;
 mod memory;
 mod status;
 
