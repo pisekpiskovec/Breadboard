@@ -17,7 +17,7 @@ impl MemoryWindow {
         cpu: Rc<RefCell<crate::memory::ATmemory>>,
     ) -> Self {
         let mut win = Self {
-            base: window!("'Internal Memory',a:bl,w:31,h:36"),
+            base: window!("'Internal Memory',a:bl,w:27,h:36"),
             config,
             cpu,
             list: Handle::None,
@@ -25,16 +25,19 @@ impl MemoryWindow {
             g_stc: listview::Group::None,
         };
 
-        let mut list: ListView<MemoryItem> = ListView::new(
-            LayoutBuilder::new().dock(Dock::Fill).build(),
-            listview::Flags::ScrollBars | listview::Flags::NoSelection | listview::Flags::ShowGroups,
-        );
+        let mut list = listview!("MemoryItem,d:f,view:Details,flags:ScrollBars+NoSelection+ShowGroups");
 
-        win.g_reg = list.add_group("Registers");
-        win.g_stc = list.add_group("Stack");
+        // Registers
+        let g_reg = list.add_group("Registers");
+        let mut registers = Vec::new();
+        for reg in 0..32 {
+            registers.push(MemoryItem {
+                address: format!("R{:02}", reg),
+                value: "000".to_string(),
+            });
+        }
+        list.add_to_group(registers, g_reg);
 
-        list.add_item(listview::Item::new(MemoryItem { address: "h", value: "h" }, false, None, [' ', ' '], win.g_reg));
-        
         win.list = win.add(list);
 
         if let Some(timer) = win.timer() {
@@ -95,17 +98,12 @@ impl TimerEvents for MemoryWindow {
     }
 }
 
+#[derive(Clone)]
+#[derive(ListItem)]
 struct MemoryItem {
-    address: &'static str,
-    value: &'static str,
-}
+    #[Column(name: "&Address", width: 12, align: Left)]
+    address: String,
 
-impl listview::ListItem for MemoryItem {
-    fn render_method(&'_ self, column_index: u16) -> Option<RenderMethod<'_>> {
-        match column_index {
-            0 => Some(listview::RenderMethod::Text(self.address)),
-            1 => Some(listview::RenderMethod::Text(self.value)),
-            _ => None,
-        }
-    }
+    #[Column(name: "&Value", width: 12, align: Right)]
+    value: String,
 }
