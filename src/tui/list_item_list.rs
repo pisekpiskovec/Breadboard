@@ -1,4 +1,4 @@
-use appcui::{prelude::{ListScrollBars, OnPaint, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
+use appcui::{prelude::ListScrollBars, ui::{ControlBase, Layout, listbox::Flags}};
 
 #[CustomControl(overwrite = OnPaint+OnKeyPressed+OnMouseEvent+OnResize)]
 pub struct ListItemList {
@@ -193,57 +193,6 @@ impl ListItemList {
             if count > 0 {
                 self.find_first_item(self.pos);
             }
-        }
-    }
-}
-
-impl OnPaint for ListItemList {
-    fn on_paint(&self, surface: &mut Surface, theme: &Theme) {
-        let has_focus = self.has_focus();
-        if has_focus {
-            self.comp.paint(surface, theme, self);
-            surface.reduce_clip_by(0, 0, 1, 1);
-        }
-
-        let attr = match () {
-            _ if !self.is_active() => theme.text.inactive,
-            _ if has_focus => theme.text.focused,
-            _ => theme.text.normal,
-        };
-
-        let mut y = 0;
-        let mut idx = self.top_view;
-        let count = self.items.len();
-        let h = self.size().height as i32;
-        let w = self.size().width as i32;
-
-        // empty message
-        if (count == 0) && (!self.empty_message.is_empty()) {
-            let empty_attr = match () {
-                _ if !self.is_active() => theme.text.inactive,
-                _ if has_focus => theme.text.highlighted,
-                _ => theme.text.inactive,
-            };
-            let format = TextFormatBuilder::new()
-                .position(w / 2, h / 2)
-                .attribute(empty_attr)
-                .align(appcui::prelude::TextAlignment::Center)
-                .wrap_type(appcui::prelude::WrapType::WordWrap(w as u16))
-                .build();
-            surface.write_text(&self.empty_message, &format);
-            return;
-        }
-
-        while (y < h) && (idx < count) {
-            surface.write_string(
-                0,
-                y,
-                &self.items[idx],
-                attr,
-                false,
-            );
-            y += 1;
-            idx += 1;
         }
     }
 }
