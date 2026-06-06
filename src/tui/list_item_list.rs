@@ -1,4 +1,4 @@
-use appcui::{input::MouseEvent, prelude::{EventProcessStatus, ListScrollBars, OnKeyPressed, OnMouseEvent, OnPaint, OnResize, Size, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
+use appcui::{input::MouseEvent, prelude::{EventProcessStatus, ListScrollBars, OnKeyPressed, OnMouseEvent, OnPaint, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
 
 #[CustomControl(overwrite = OnPaint+OnKeyPressed+OnMouseEvent+OnResize)]
 pub struct ListItemList {
@@ -365,11 +365,5 @@ impl OnMouseEvent for ListItemList {
         } else {
             response
         }
-    }
-}
-
-impl OnResize for ListItemList {
-    fn on_resize(&mut self, _old_size: Size, _new_size: Size) {
-        self.comp.resize(self.max_chars as u64, self.items.len() as u64, &self.base, self.size());
     }
 }
