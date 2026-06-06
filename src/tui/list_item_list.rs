@@ -1,4 +1,4 @@
-use appcui::{prelude::{ListScrollBars, OnKeyPressed, OnPaint, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
+use appcui::{prelude::{ListScrollBars, OnPaint, Surface, TextFormatBuilder}, system::Theme, ui::{ControlBase, Layout, listbox::Flags}};
 
 #[CustomControl(overwrite = OnPaint+OnKeyPressed+OnMouseEvent+OnResize)]
 pub struct ListItemList {
@@ -244,95 +244,6 @@ impl OnPaint for ListItemList {
             );
             y += 1;
             idx += 1;
-        }
-    }
-}
-
-impl OnKeyPressed for ListItemList {
-    fn on_key_pressed(&mut self, key: Key, character: char) -> EventProcessStatus {
-        if self.comp.process_key_pressed(key, character) {
-            self.search();
-            return EventProcessStatus::Processed;
-        }
-        match key.value() {
-            key!("Up") => {
-                self.update_position(self.pos.saturating_sub(1), true);
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("Down") => {
-                self.update_position(self.pos.saturating_add(1), true);
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("Left") => {
-                self.left_view = self.left_view.saturating_sub(1);
-                self.update_left_position_for_items();
-                self.update_scrollbars();
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("Ctrl+Alt+Left") => {
-                self.left_view = 0;
-                self.update_left_position_for_items();
-                self.update_scrollbars();
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("Right") => {
-                let d = if self.flags.contains(Flags::CheckBoxes) { 2 } else { 0 };
-                let w = self.size().width.saturating_sub(d);
-                self.left_view = (self.left_view + 1).min(self.max_chars.saturating_sub(w) as usize);
-                self.update_left_position_for_items();
-                self.update_scrollbars();
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("Ctrl+Alt+Right") => {
-                let d = if self.flags.contains(Flags::CheckBoxes) { 2 } else { 0 };
-                let w = self.size().width.saturating_sub(d);
-                self.left_view = self.max_chars.saturating_sub(w) as usize;
-                self.update_left_position_for_items();
-                self.update_scrollbars();
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("Ctrl+Alt+Up") => {
-                self.move_scroll_to(self.top_view.saturating_sub(1));
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("Ctrl+Alt+Down") => {
-                self.move_scroll_to(self.top_view.saturating_add(1));
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("Home") => {
-                self.update_position(0, true);
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("End") => {
-                self.update_position(self.items.len(), true);
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("PageUp") => {
-                self.update_position(self.pos.saturating_sub(self.size().height as usize), true);
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            key!("PageDown") => {
-                self.update_position(self.pos.saturating_add(self.size().height as usize), true);
-                self.comp.exit_edit_mode();
-                return EventProcessStatus::Processed;
-            }
-            _ => {}
-        }
-        if self.comp.should_repaint() {
-            EventProcessStatus::Processed
-        } else {
-            EventProcessStatus::Ignored
         }
     }
 }
