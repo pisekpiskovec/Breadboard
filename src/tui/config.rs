@@ -7,6 +7,8 @@ pub struct ConfigDialog {
     config: Rc<RefCell<crate::config::Config>>,
     close_btn: Handle<Button>,
     save_btn: Handle<Button>,
+    memory_bytes_per_row: Handle<NumericSelector<usize>>,
+    memory_bytes_per_column: Handle<NumericSelector<usize>>,
 }
 
 impl ConfigDialog {
@@ -20,8 +22,48 @@ impl ConfigDialog {
             config,
             close_btn: Handle::None,
             save_btn: Handle::None,
+            memory_bytes_per_row: Handle::None,
+            memory_bytes_per_column: Handle::None,
         };
-        win.close_btn = win.add(button!("Close,d:b"));
+
+        // Panels
+        //// Display
+        let mut flash_disp_panel = Panel::new(
+            "Flash Display",
+            LayoutBuilder::new().dock(Dock::Top).height(6).build(),
+        );
+        flash_disp_panel.add(Label::new(
+            "Bytes of memory per row",
+            layout!("x:0,y:0,w:23"),
+        ));
+        let mbp_row: NumericSelector<usize> = NumericSelector::new(
+            8,
+            1,
+            16,
+            1,
+            layout!("x:1,y:1,w:20"),
+            numericselector::Flags::None,
+        );
+        win.memory_bytes_per_row = flash_disp_panel.add(mbp_row);
+        flash_disp_panel.add(Label::new(
+            "Bytes of memory per column",
+            layout!("x:0,y:2,w:26"),
+        ));
+        let mbp_column: NumericSelector<usize> = NumericSelector::new(
+            128,
+            8,
+            256,
+            8,
+            layout!("x:1,y:3,w:20"),
+            numericselector::Flags::None,
+        );
+        win.memory_bytes_per_column = flash_disp_panel.add(mbp_column);
+
+        win.add(flash_disp_panel);
+
+        // Buttons
+        win.save_btn = win.add(button!("&Save,a:bl,w:50%"));
+        win.close_btn = win.add(button!("&Close,a:br,w:50%"));
         win
     }
 }
