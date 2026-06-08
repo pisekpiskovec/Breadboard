@@ -2,9 +2,9 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use appcui::prelude::Desktop;
 
-use crate::tui::{flash::FlashWindow, memory::MemoryWindow};
+use crate::tui::{config::ConfigDialog, flash::FlashWindow, memory::MemoryWindow};
 
-#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowFlash, ShowMemory, CPUStep, CPUAuto, CPUReset, AppExit])]
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowConfig, ShowFlash, ShowMemory, CPUStep, CPUAuto, CPUReset, AppExit])]
 pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
@@ -110,6 +110,9 @@ impl MenuEvents for TDesktop {
             tdesktop::Commands::ShowMemory => {
                 let mem_win = MemoryWindow::new(Rc::clone(&self.config), Rc::clone(&self.cpu));
                 self.add_window(mem_win);
+            }
+            tdesktop::Commands::ShowConfig => {
+                if let Some(_response) = ConfigDialog::new(Rc::clone(&self.config)).show() {}
             }
             tdesktop::Commands::ShowAbout => dialogs::message(
                 "Breadboard",
@@ -230,6 +233,11 @@ impl DesktopEvents for TDesktop {
             "&Reset",
             key!("Ctrl+R"),
             tdesktop::Commands::CPUReset,
+        ));
+        menu_edit.add(menu::Command::new(
+            "&Config",
+            key!("F12"),
+            tdesktop::Commands::ShowConfig,
         ));
         self.menu_edit = self.appbar().add(appbar::MenuButton::new(
             "&Edit",

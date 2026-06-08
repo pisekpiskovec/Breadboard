@@ -6,6 +6,7 @@ use crate::{
     tui::{desktop::TDesktop, memory::MemoryWindow, status::StatusWindow},
 };
 
+mod config;
 mod desktop;
 mod flash;
 mod memory;
