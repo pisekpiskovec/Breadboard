@@ -54,7 +54,7 @@ impl MemoryWindow {
         win.list = win.add(list);
 
         if let Some(timer) = win.timer() {
-            timer.start(Duration::from_millis(100_00));
+            timer.start(Duration::from_millis(100));
         }
 
         win
