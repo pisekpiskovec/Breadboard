@@ -112,7 +112,10 @@ impl MenuEvents for TDesktop {
                 self.add_window(mem_win);
             }
             tdesktop::Commands::ShowConfig => {
-                if let Some(_response) = ConfigDialog::new(Rc::clone(&self.config)).show() {}
+                if let Some(response) = ConfigDialog::new(Rc::clone(&self.config)).show() {
+                    self.config = Rc::new(RefCell::new(response));
+                    let _ = self.config.borrow_mut().save();
+                }
             }
             tdesktop::Commands::ShowAbout => dialogs::message(
                 "Breadboard",
