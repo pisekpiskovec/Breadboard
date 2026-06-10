@@ -1,10 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
-use appcui::prelude::{ButtonEvents, ModalWindow};
+use appcui::prelude::{ButtonEvents, EventProcessStatus, ModalWindow};
 
 use crate::config::{Config, DisplayBase, DisplayBaseConfig};
 
-#[ModalWindow(events=[WindowEvents, ButtonEvents], response=Config)]
+#[ModalWindow(events=[WindowEvents, ButtonEvents], response=ConfigDialogResult)]
 pub struct ConfigDialog {
     config: Rc<RefCell<crate::config::Config>>,
     close_btn: Handle<Button>,
@@ -14,10 +14,12 @@ pub struct ConfigDialog {
     registers_base: Handle<DropDownList<DisplayBase>>,
     stack_base: Handle<DropDownList<DisplayBase>>,
     bridge_adderss: Handle<TextField>,
+    cpu_frequency_handle: Handle<NumericSelector<u8>>,
+    cpu_frequency: u8,
 }
 
 impl ConfigDialog {
-    pub fn new(config: Rc<RefCell<crate::config::Config>>) -> Self {
+    pub fn new(config: Rc<RefCell<crate::config::Config>>, cpu_frequency: u8) -> Self {
         let mut win = Self {
             base: ModalWindow::new(
                 "Config",
@@ -32,6 +34,8 @@ impl ConfigDialog {
             registers_base: Handle::None,
             stack_base: Handle::None,
             bridge_adderss: Handle::None,
+            cpu_frequency_handle: Handle::None,
+            cpu_frequency,
         };
 
         let cfg = config.borrow();
@@ -118,6 +122,23 @@ impl ConfigDialog {
         ));
         win.add(pinout_panel);
 
+        //// CPU freq
+        let mut cpu_panel = Panel::new(
+            "Simulation",
+            LayoutBuilder::new().width(1.0).height(4).x(0).y(16).build(),
+        );
+        cpu_panel.add(Label::new("CPU frequency", layout!("x:0,y:0,w:13")));
+        let cpu_freq: NumericSelector<u8> = NumericSelector::new(
+            win.cpu_frequency,
+            1,
+            10,
+            1,
+            layout!("x:1,y:1,w:20"),
+            numericselector::Flags::None,
+        );
+        win.cpu_frequency_handle = cpu_panel.add(cpu_freq);
+        win.add(cpu_panel);
+
         // Buttons
         win.save_btn = win.add(button!("&Save,a:bl,w:50%"));
         win.close_btn = win.add(button!("&Close,a:br,w:50%"));
@@ -137,7 +158,7 @@ impl ButtonEvents for ConfigDialog {
             self.exit();
             return EventProcessStatus::Processed;
         } else if handle == self.save_btn {
-            let clonned_cfg = {
+            let result = {
                 let mut new_cfg = self.config.borrow_mut();
                 if let Some(value) = self.control(self.memory_bytes_per_row) {
                     new_cfg.display.memory_bytes_per_row = value.value();
@@ -157,9 +178,20 @@ impl ButtonEvents for ConfigDialog {
                 if let Some(value) = self.control(self.bridge_adderss) {
                     new_cfg.bridge_address = value.text().to_string();
                 }
-                new_cfg.clone()
+
+                let new_frequency = if let Some(value) = self.control(self.cpu_frequency_handle) {
+                    value.value()
+                } else {
+                    self.cpu_frequency
+                };
+
+                ConfigDialogResult {
+                    config: new_cfg.clone(),
+                    cpu_frequency: new_frequency,
+                }
             };
-            self.exit_with(clonned_cfg.clone());
+
+            self.exit_with(result);
             return EventProcessStatus::Processed;
         }
         EventProcessStatus::Ignored
@@ -188,4 +220,9 @@ impl DropDownListType for DisplayBase {
             DisplayBase::Hexadecimal => "#",
         }
     }
+}
+
+pub struct ConfigDialogResult {
+    pub config: Config,
+    pub cpu_frequency: u8,
 }

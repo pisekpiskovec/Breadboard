@@ -9,6 +9,7 @@ pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
     cpu_auto_step: bool,
+    cpu_frequency: u8,
     flash_window_handler: Handle<FlashWindow>,
     menu_file: Handle<appbar::MenuButton>,
     menu_edit: Handle<appbar::MenuButton>,
@@ -26,6 +27,7 @@ impl TDesktop {
             config,
             cpu,
             cpu_auto_step: false,
+            cpu_frequency: 1,
             flash_window_handler: Handle::None,
             menu_file: Handle::None,
             menu_edit: Handle::None,
@@ -112,10 +114,16 @@ impl MenuEvents for TDesktop {
                 self.add_window(mem_win);
             }
             tdesktop::Commands::ShowConfig => {
-                if let Some(response) = ConfigDialog::new(Rc::clone(&self.config)).show() {
-                    self.config = Rc::new(RefCell::new(response));
+                let auto_step_state = self.cpu_auto_step;
+                self.cpu_auto_step = false;
+                if let Some(response) =
+                    ConfigDialog::new(Rc::clone(&self.config), self.cpu_frequency).show()
+                {
+                    self.config = Rc::new(RefCell::new(response.config));
+                    self.cpu_frequency = response.cpu_frequency;
                     let _ = self.config.borrow_mut().save();
                 }
+                self.cpu_auto_step = auto_step_state;
             }
             tdesktop::Commands::ShowAbout => dialogs::message(
                 "Breadboard",
@@ -287,13 +295,17 @@ impl DesktopEvents for TDesktop {
 impl TimerEvents for TDesktop {
     fn on_update(&mut self, _ticks: u64) -> EventProcessStatus {
         if self.cpu_auto_step {
-            match self.cpu.borrow_mut().step() {
-                Ok(_) => {}
-                Err(e) => {
-                    log!("ERROR", "Failed to step program: {}", e);
-                    dialogs::error("Auto-Run", &format!("Failed to step program: {}", e));
-                }
-            };
+            let instructions_per_tick = self.cpu_frequency as u64;
+            for _ in 0..instructions_per_tick {
+                match self.cpu.borrow_mut().step() {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log!("ERROR", "Failed to step program: {}", e);
+                        dialogs::error("Auto-Run", &format!("Failed to step program: {}", e));
+                        break;
+                    }
+                };
+            }
         }
         EventProcessStatus::Processed
     }
