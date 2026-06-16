@@ -2,9 +2,11 @@ use std::{cell::RefCell, rc::Rc, time::Duration};
 
 use appcui::prelude::Desktop;
 
-use crate::tui::{config::ConfigDialog, flash::FlashWindow, memory::MemoryWindow};
+use crate::tui::{
+    config::ConfigDialog, flash::FlashWindow, memory::MemoryWindow, ports::PortsWindow,
+};
 
-#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowConfig, ShowFlash, ShowMemory, CPUStep, CPUAuto, CPUReset, AppExit])]
+#[Desktop(events = [MenuEvents, AppBarEvents, DesktopEvents, TimerEvents], commands=[OpenBin, OpenHex, ShowAbout, ShowConfig, ShowFlash, ShowMemory, ShowPorts, CPUStep, CPUAuto, CPUReset, AppExit])]
 pub struct TDesktop {
     config: Rc<RefCell<crate::config::Config>>,
     cpu: Rc<RefCell<crate::memory::ATmemory>>,
@@ -158,6 +160,10 @@ License: MIT",
                 self.cpu.borrow_mut().reset();
             }
             tdesktop::Commands::AppExit => self.close(),
+            tdesktop::Commands::ShowPorts => {
+                let prt_win = PortsWindow::new(Rc::clone(&self.cpu));
+                self.add_window(prt_win);
+            }
         }
     }
 
@@ -268,6 +274,11 @@ impl DesktopEvents for TDesktop {
             "Show &Memory",
             Key::None,
             tdesktop::Commands::ShowMemory,
+        ));
+        menu_view.add(menu::Command::new(
+            "Show &Ports",
+            Key::None,
+            tdesktop::Commands::ShowPorts,
         ));
         self.menu_view = self.appbar().add(appbar::MenuButton::new(
             "&View",
