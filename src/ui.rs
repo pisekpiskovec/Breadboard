@@ -2,13 +2,13 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use iced::event::{self, Event};
-use iced::keyboard;
 use iced::keyboard::key;
 use iced::theme::Mode;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, rule, scrollable, slider, text, text_input,
 };
 use iced::Length::Fill;
+use iced::{keyboard, window};
 use iced::{system, Element, Font, Task, Theme};
 use rfd::FileDialog;
 
@@ -741,6 +741,13 @@ impl UInterface {
             .padding(4),
         );
         container(content).into()
+    }
+
+    pub fn window_settings() -> window::Settings {
+        window::Settings {
+            icon: window::icon::from_file_data(include_bytes!("../assets/icon.png"), None).ok(),
+            ..Default::default()
+        }
     }
 
     fn format_value(value: u8, base: DisplayBase) -> String {

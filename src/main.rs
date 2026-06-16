@@ -11,5 +11,6 @@ fn main() -> iced::Result {
         .title("Breadboard")
         .theme(UInterface::theme)
         .subscription(UInterface::subscription)
+        .window(UInterface::window_settings())
         .run()
 }
