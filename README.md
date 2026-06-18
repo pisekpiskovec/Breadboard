@@ -32,3 +32,16 @@ Check [supported instructions](/INSTRUCTIONS.md) before running any program.
 | Alt+r    | Restart emulator           |
 | \*       | Toggle ASCII view in flash |
 | Ctrl+q   | Quit                       |
+
+## Building
+
+```bash
+# GUI only (default)
+cargo build --release
+
+# TUI only
+cargo build --release --no-default-features --features tui
+
+# Both GUI (preferred) and TUI (fallback)
+cargo build --release --features "gui,tui";
+```
