@@ -22,6 +22,7 @@ fn main() {
                 .title("Breadboard")
                 .theme(GUInterface::theme)
                 .subscription(GUInterface::subscription)
+                .window(GUInterface::window_settings())
                 .run()
         }));
         match result {
