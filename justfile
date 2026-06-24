@@ -37,3 +37,8 @@ gen-deb:
     cargo deb
     mv target/debian/*.deb ./
     cargo clean
+
+[linux]
+build-flatpak:
+    flatpak-builder --user --install --force-clean build-dir com.github.pisekpiskovec.Breadboard.yml
+    flatpak run com.github.pisekpiskovec.Breadboard
