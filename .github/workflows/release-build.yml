@@ -97,3 +97,34 @@ jobs:
       with:
         files: target/release/breadboard-arm
 
+  build-flatpak-x64:
+    runs-on: ubuntu-latest
+    needs: [build-elf-x64]
+    container:
+      image: bionic/flatpak-github-actions:latest
+      options: --privileged
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Extract version from tag
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+    - name: Download binary and compute SHA256
+      run: |
+        curl -L -o /tmp/breadboard-x64 \
+          https://github.com/${{ github.repository }}/releases/download/${{ github.reg }}/breadboard-x64
+        echo "BINARY_SHA256=$(sha256sum /tmp/breadboard-x64 | cud -d' ' -f1)" >> $GITHUB_ENV
+    - name: Update manifest with version and SHA256
+      run: |
+        sed -i "s|tag: v[0-9.]*|tag: v${{ env.VERSION }}|g" com.github.pisekpiskovec.Breadboard.yml
+        sed -i "s|/download/v[0-9.]*/|/download/v${{ env.VERSION }}/|g" com.github.pisekpiskovec.Breadboard.yml
+        sed -i "s|sha256: \"[a-f0-9]*\"|sha256: \"${{ env.BINARY_SHA256 }}\"|" com.github.pisekpiskovec.Breadboard.yml
+    - name: Build Flatpak
+      uses: flatpak/flatpak-github-actions/build@v6
+      with:
+        bundle: Breadboard.flatpak
+        manifest-path: com.github.pisekpiskovec.Breadboard.yml
+        cache: true
+    - name: Upload Flatpak to release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: Breadboard.flatpak
