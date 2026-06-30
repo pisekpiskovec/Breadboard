@@ -26,18 +26,12 @@ enum Instruction {
     AND { dest: u8, src: u8 },    // Logical AND
     ANDI { dest: u8, value: u8 }, // Logical AND with Immediate / Clear Bits in Register
     ASR { dest: u8 },             // Arithmetic Shift Right
+    BCLR { dest: u8 },            // Bit Clear in SREG
     BRBC { offset: i8, bit: u8 }, // Branch if Bit in SREG is Cleared
     BRBS { offset: i8, bit: u8 }, // Branch if Bit in SREG is Set
+    BSET { dest: u8 },            // Bit Set in SREG
     CALL { dest: u32 },           // Long Call to a Subroutnie
     CBI { dest: u8, bit: u8 },    // Clear Bit in I/O Register
-    CLC,                          // Clear Carry Flag
-    CLH,                          // Clear Half Carry Flag
-    CLI,                          // Clear Global Interrupt Flag
-    CLN,                          // Clear Negative Flag
-    CLS,                          // Clear Signed Flag
-    CLT,                          // Clear T Flag
-    CLV,                          // Clear Overflow Flag
-    CLZ,                          // Clear Zero Flag
     CP { dest: u8, src: u8 },     // Compare
     DEC { reg: u8 },              // Decrement
     EOR { dest: u8, src: u8 },    // Exclusive OR / Clear Register
@@ -57,7 +51,6 @@ enum Instruction {
     RETI,                         // Return from Interrupt
     RJMP { offset: i16 },         // Relative Jump
     SBI { dest: u8, bit: u8 },    // Set Bit in I/O Register
-    SEC,                          // Set Carry Flag
     SUB { dest: u8, src: u8 },    // Subtract without Carry
 }
 
@@ -326,7 +319,6 @@ impl ATmemory {
                 dest: ((x >> 4) & 0x1F) as u8,
                 src: (((x >> 5) & 0x10) | (x & 0x0F)) as u8,
             }),
-            0x4A08 => Ok(Instruction::SEC),
             x if (x & 0xF000) == 0x6000 => Ok(Instruction::ORI {
                 dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
                 value: (((x >> 4) & 0xF0) | (x & 0x0F)) as u8,
@@ -347,6 +339,7 @@ impl ATmemory {
             x if (x & 0xFE0F) == 0x9405 => Ok(Instruction::ASR {
                 dest: (0x10 | ((x >> 4) & 0x0F)) as u8,
             }),
+            x if (x & 0xFF8F) == 0x9408 => Ok(Instruction::BSET { dest: ((x >> 4) & 0x07) as u8 }),
             x if (x & 0xFE0F) == 0x940A => Ok(Instruction::DEC {
                 reg: ((x >> 4) & 0x1F) as u8,
             }),
@@ -374,14 +367,7 @@ impl ATmemory {
                     (((((x >> 4) & 0x1F) as u32) << 16) | ((word as u32) << 1) | (x & 1) as u32) / 2
                 },
             }),
-            0x9488 => Ok(Instruction::CLC),
-            0x9498 => Ok(Instruction::CLZ),
-            0x94A8 => Ok(Instruction::CLN),
-            0x94B8 => Ok(Instruction::CLV),
-            0x94C8 => Ok(Instruction::CLS),
-            0x94D8 => Ok(Instruction::CLH),
-            0x94E8 => Ok(Instruction::CLT),
-            0x94F8 => Ok(Instruction::CLI),
+            x if (x & 0xFF8F) == 0x9488 => Ok(Instruction::BCLR { dest: ((x >> 4) & 0x07) as u8 }),
             0x9508 => Ok(Instruction::RET),
             0x9518 => Ok(Instruction::RETI),
             x if (x & 0xFF00) == 0x9600 => Ok(Instruction::ADIW {
@@ -581,6 +567,10 @@ impl ATmemory {
                 self.pc += 1;
                 Ok(())
             }
+            Instruction::BCLR { dest } => {
+                self.clear_flag(2_u8.pow(dest as u32)); self.pc += 1;
+                Ok(())
+            }
             Instruction::BRBC { offset, bit } => {
                 if self.sreg() >> bit == 0 {
                     self.pc = (self.pc as i32 + offset as i32 + 1) as u16;
@@ -595,6 +585,10 @@ impl ATmemory {
                 } else {
                     self.pc += 1;
                 }
+                Ok(())
+            }
+            Instruction::BSET { dest } => {
+                self.set_flag(2_u8.pow(dest as u32)); self.pc += 1;
                 Ok(())
             }
             Instruction::CALL { dest } => {
@@ -613,46 +607,6 @@ impl ATmemory {
                     0x20 + (dest as u16),
                     self.read_memory(0x20 + (dest as u16)) & !mask,
                 );
-                self.pc += 1;
-                Ok(())
-            }
-            Instruction::CLC => {
-                self.clear_flag(0b00000001);
-                self.pc += 1;
-                Ok(())
-            }
-            Instruction::CLH => {
-                self.clear_flag(0b00100000);
-                self.pc += 1;
-                Ok(())
-            }
-            Instruction::CLI => {
-                self.clear_flag(0b10000000);
-                self.pc += 1;
-                Ok(())
-            }
-            Instruction::CLN => {
-                self.clear_flag(0b00000100);
-                self.pc += 1;
-                Ok(())
-            }
-            Instruction::CLS => {
-                self.clear_flag(0b00010000);
-                self.pc += 1;
-                Ok(())
-            }
-            Instruction::CLT => {
-                self.clear_flag(0b01000000);
-                self.pc += 1;
-                Ok(())
-            }
-            Instruction::CLV => {
-                self.clear_flag(0b00001000);
-                self.pc += 1;
-                Ok(())
-            }
-            Instruction::CLZ => {
-                self.clear_flag(0b00000010);
                 self.pc += 1;
                 Ok(())
             }
@@ -866,11 +820,6 @@ impl ATmemory {
                 self.pc += 1;
                 Ok(())
             }
-            Instruction::SEC => {
-                self.set_flag(0b00000001);
-                self.pc += 1;
-                Ok(())
-            }
             Instruction::SUB { dest, src } => {
                 let rd3 = Self::bit(self.read_memory(dest as u16), 3);
                 let rr3 = Self::bit(self.read_memory(src as u16), 3);
@@ -969,10 +918,10 @@ impl ATmemory {
 // 0x9403 = 1001|0100|0000|0011 => mask result
 // 0x9453 = 1001|0100|0101|0011 => RESULT
 
-// (x & 0xF800) == 0xB800
-//   BRBC = 1111|01kk|kkkk|ksss
-// 0xF800 = 1111|1100|0000|0000 => mask
-// 0xB800 = 1011|1000|0000|0000 => mask result
+// (x & 0xFF8F) == 0x9408
+//   BSET = 1001|0100|0sss|1000
+// 0xFF8F = 1111|1111|1000|1111 => mask
+// 0x9408 = 1001|0100|0000|1000 => mask result
 // 0x9453 = 1001|0100|0101|1010 => RESULT
 //
 // 1110 KKKK dddd KKKK

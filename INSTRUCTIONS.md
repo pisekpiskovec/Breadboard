@@ -10,6 +10,7 @@ For currently supported instructions, see table below.
 | AND         | Logical AND                            |                                      |
 | ANDI        | Logical AND with Immediate             |                                      |
 | ASR         | Arithmetic Shift Right                 |                                      |
+| BCLR        | Bit Clear in SREG                      |                                      |
 | BRBC        | Branch if Bit in SREG is Cleared       |                                      |
 | BRBS        | Branch if Bit in SREG is Set           |                                      |
 | BRCC        | Branch if Carry Cleared                | This is handled by BRBC instruction. |
@@ -30,18 +31,19 @@ For currently supported instructions, see table below.
 | BRTS        | Branch if the T Flag is Set            | This is handled by BRBS instruction. |
 | BRVC        | Branch if Overflow Cleared             | This is handled by BRBC instruction. |
 | BRVS        | Branch if Overflow Set                 | This is handled by BRBS instruction. |
+| BSET        | Bit Set in SREG                        |                                      |
 | CALL        | Long Call to a Subroutine              |                                      |
 | CBI         | Clear Bit in I/O Register              | I/O is currently not supported.      |
 | CBR         | Clear Bits in Register                 | This is handled by ANDI instruction. |
-| CLC         | Clear Carry Flag                       |                                      |
-| CLH         | Clear Half Carry Flag                  |                                      |
-| CLI         | Clear Global Interrupt Flag            |                                      |
-| CLN         | Clear Negative Flag                    |                                      |
+| CLC         | Clear Carry Flag                       | This is handled by BCLR instruction. |
+| CLH         | Clear Half Carry Flag                  | This is handled by BCLR instruction. |
+| CLI         | Clear Global Interrupt Flag            | This is handled by BCLR instruction. |
+| CLN         | Clear Negative Flag                    | This is handled by BCLR instruction. |
 | CLR         | Clear Register                         | This is handled by EOR instruction.  |
-| CLS         | Clear Signed Flag                      |                                      |
-| CLT         | Clear T Flag                           |                                      |
-| CLV         | Clear Overflow Flag                    |                                      |
-| CLZ         | Clear Zero Flag                        |                                      |
+| CLS         | Clear Signed Flag                      | This is handled by BCLR instruction. |
+| CLT         | Clear T Flag                           | This is handled by BCLR instruction. |
+| CLV         | Clear Overflow Flag                    | This is handled by BCLR instruction. |
+| CLZ         | Clear Zero Flag                        | This is handled by BCLR instruction. |
 | CP          | Compare                                |                                      |
 | DEC         | Decrement                              |                                      |
 | EOR         | Exclusive OR                           |                                      |
@@ -59,7 +61,14 @@ For currently supported instructions, see table below.
 | RET         | Return from Subroutine                 |                                      |
 | RETI        | Return from Interrupt                  |                                      |
 | RJMP        | Relative Jump                          |                                      |
-| SEC         | Set Carry Flag                         |                                      |
+| SEC         | Set Carry Flag                         | This is handled by BSET instruction. |
+| SEH         | Set Half Carry Flag                    | This is handled by BSET instruction. |
+| SEI         | Set Global Interrupt Flag              | This is handled by BSET instruction. |
+| SEN         | Set Negative Flag                      | This is handled by BSET instruction. |
+| SES         | Set Signed Flag                        | This is handled by BSET instruction. |
+| SET         | Set T Flag                             | This is handled by BSET instruction. |
+| SEV         | Set Overflow Flag                      | This is handled by BSET instruction. |
+| SEZ         | Set Zero Flag                          | This is handled by BSET instruction. |
 | SUB         | Subtract without Carry                 |                                      |
 
 Other instruction will result in `NOP` and won't be executed, making program stuck in place.
