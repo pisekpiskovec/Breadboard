@@ -43,5 +43,5 @@ cargo build --release
 cargo build --release --no-default-features --features tui
 
 # Both GUI (preferred) and TUI (fallback)
-cargo build --release --features "gui,tui";
+cargo build --release --features "gui,tui"
 ```
